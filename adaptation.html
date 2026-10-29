@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d7794e">
+  <title>Climber tactile — ascension LCD</title>
+  <style>
+:root{--dark:#3e2d28;--orange:#d7794e;--panel:#d3ded1;--ink:#283a34;--sub:#675950}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#241f1e;color:#fff9f2;font-family:system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+button{font-family:inherit;cursor:pointer}
+.app{height:100dvh;min-height:0;max-width:800px;margin:auto;display:flex;flex-direction:column}
+.header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 13px}
+.brand strong{display:block;font-size:19px;letter-spacing:1px}
+.brand small{display:block;font-size:11px;color:#ded0c2}
+.actions{display:flex;gap:6px}
+.small-btn{min-height:42px;min-width:43px;border-radius:12px;border:1px solid #8c7e72;background:#463c37;color:#fff;font-size:20px}
+.console{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:10px 11px 8px;background:linear-gradient(140deg,#de855b,#be6140 80%);border-top:2px solid #efab88;border-bottom:2px solid #a64c33}
+.console-label{display:flex;justify-content:space-between;gap:6px;align-items:center;color:#fff4eb;font-size:12px;font-weight:800;letter-spacing:1px}
+.console-label span:last-child{font-size:11px;letter-spacing:0;opacity:.9}
+.screen-shell{min-height:0;width:100%;max-width:720px;aspect-ratio:480/320;margin:0 auto;padding:9px;background:linear-gradient(140deg,#f1f1ed,#adb2b3);border-radius:18px;border:3px solid #8f9697;box-shadow:inset 0 0 0 3px #ecedeb,0 6px 15px #5b332b7d}
+.screen-inner{width:100%;height:100%;background:#273c35;border-radius:9px;padding:7px;box-shadow:inset 0 0 10px #1119}
+canvas{display:block;width:100%;height:100%;background:#cbd8cc;border-radius:3px}
+.help{font-size:12px;text-align:center;line-height:1.4;color:#fff5ed;max-width:540px;margin:0 auto}
+.controls{flex:none;display:grid;grid-template-columns:1fr 1fr 1.45fr;gap:10px;padding:11px 13px max(16px,env(safe-area-inset-bottom));height:clamp(144px,25dvh,205px);touch-action:none;user-select:none;-webkit-user-select:none}
+.control{touch-action:none;user-select:none;-webkit-user-select:none;background:#63514a;border:3px solid #9f8b7b;color:#fff;border-radius:25px;box-shadow:0 7px 0 #241b19;font-size:clamp(35px,9vw,64px);font-weight:900}
+.control.jump{background:#cb4937;border-color:#f69b81;box-shadow:0 7px 0 #6a231c;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.control.jump span{font-size:16px;font-weight:800;letter-spacing:1px}
+.control.is-down{transform:translateY(5px);box-shadow:0 2px 0 #1b1514;filter:brightness(1.16)}
+.footer{text-align:center;flex:none;font-size:10px;color:#b9a79b;padding:4px 8px}
+button:focus-visible{outline:3px solid #fff6b1;outline-offset:3px}
+@media(max-height:600px) and (orientation:landscape){
+ .app{max-width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,40%);grid-template-rows:51px 1fr 17px}
+ .header{grid-column:1/-1;grid-row:1}
+ .console{grid-column:1;grid-row:2;min-height:0;padding:3px 8px}
+ .screen-shell{width:auto;height:min(100%,100%);max-width:100%;aspect-ratio:480/320}
+ .console-label,.help,.footer{display:none}
+ .controls{grid-column:2;grid-row:2;height:auto;padding:14px 12px;gap:8px}
+}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="header">
+  <div class="brand"><strong>CLIMBER · ESCALADE LCD</strong><small>Plates-formes qui se construisent · gros boutons</small></div>
+  <div class="actions">
+    <button class="small-btn" id="sound" aria-label="Activer le son">♪</button>
+    <button class="small-btn" id="pause" aria-label="Mettre en pause">Ⅱ</button>
+    <button class="small-btn" id="restart" aria-label="Recommencer">↻</button>
+  </div>
+</header>
+<section class="console" aria-label="Jeu d'escalade">
+  <div class="console-label"><span>MONTAGNE AUX BRIQUES</span><span>ÉCRAN LCD</span></div>
+  <div class="screen-shell"><div class="screen-inner"><canvas id="game" width="480" height="320" role="img" aria-label="Monte dans une tour de plateformes, frappe les briques deux fois et évite les ennemis"></canvas></div></div>
+  <p class="help">Monte de plateforme en plateforme. Les briques cèdent en deux coups de tête. Passe par les trous, puis grimpe toujours plus haut !</p>
+</section>
+<nav class="controls" aria-label="Grosses commandes tactiles">
+  <button class="control" data-key="left" aria-label="Aller à gauche">◀</button>
+  <button class="control" data-key="right" aria-label="Aller à droite">▶</button>
+  <button class="control jump" data-key="jump" aria-label="Sauter">▲<span>SAUT</span></button>
+</nav>
+<footer class="footer">Recréation indépendante inspirée des mécaniques du Climber de 1986 ; ce n'est pas l'émulation Nintendo ou RetroFab.</footer>
+</main>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
+const W=480,H=320,COLS=24,CELL=W/COLS,FLOOR=82,LAST=25,PH=24;
+const held={left:false,right:false,jump:false},keys=new Set(),pointers=new Map(),buttons=[...document.querySelectorAll('.control')];
+let jumpQueued=false,sound=false,audio=null,last=performance.now(),state;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const rnd=n=>{const x=Math.sin(n*127.1+79.7)*43758.545;return x-Math.floor(x)};
+const best=()=>{try{return +(localStorage.getItem('lcd-ascension-best')||0)}catch{return 0}};
+const saveBest=n=>{try{localStorage.setItem('lcd-ascension-best',String(n))}catch{}};
+function beep(f=420,d=.05){if(!sound)return;try{
+  audio ||= new (window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==='suspended')audio.resume();
+  const o=audio.createOscillator(),g=audio.createGain();o.type='square';o.frequency.value=f;
+  g.gain.setValueAtTime(.025,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);
+  o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d);
+}catch{}}
+function tileAt(row,x){const col=Math.floor(clamp(x,0,W-.01)/CELL);return row.tiles[col]}
+function createRows(phase){
+ const rows=[];
+ rows.push({level:0,y:0,tiles:Array.from({length:COLS},()=>2),moving:false});
+ for(let i=1;i<=LAST;i++){
+   const tiles=Array.from({length:COLS},()=>2),seed=i*37+phase*91;
+   const a=2+Math.floor(rnd(seed)*17), b=2+Math.floor(rnd(seed+3)*17);
+   for(let j=0;j<4;j++)tiles[(a+j)%COLS]=0;
+   if(i%3!==0){for(let j=0;j<3;j++)tiles[(b+j)%COLS]=0}
+   // Premier passage volontairement accessible depuis le centre.
+   if(i===1){for(let j=10;j<=14;j++)tiles[j]=0}
+   rows.push({level:i,y:i*FLOOR,tiles,moving:false});
+ }
+ return rows;
+}
+function reset(phase=1,keep=false){
+ const prev=state;
+ const rows=createRows(phase);
+ state={
+   phase,rows,score:keep?prev.score:0,record:keep?prev.record:best(),
+   lives:keep?prev.lives:3,highest:0,camera:0,time:0,
+   playing:false,paused:false,over:false,bonus:false,bonusTime:0,bonusCatch:false,
+   player:{x:W/2,y:0,vy:0,grounded:true,inv:0},
+   blockmen:[],birds:[],nextBird:7,notice:'APPUIE SUR ◀, ▶ OU SAUT POUR COMMENCER',noticeTime:Infinity
+ };
+ for(const n of [4,8,12,16,20,23]){
+   const row=rows[n],x=(4+Math.floor(rnd(n*33+phase)*13))*CELL;
+   state.blockmen.push({row:n,x,dir:n%2?-1:1,tick:0,speed:48+phase*3});
+ }
+ clearInputs();updatePause();
+}
+function clearInputs(){
+ for(const k in held)held[k]=false;
+ keys.clear();pointers.clear();jumpQueued=false;
+ buttons.forEach(b=>b.classList.remove('is-down'));
+}
+function refreshInputs(){
+ for(const k in held)held[k]=keys.has(k)||[...pointers.values()].includes(k);
+ buttons.forEach(b=>b.classList.toggle('is-down',held[b.dataset.key]));
+}
+for(const b of buttons){
+ b.addEventListener('pointerdown',e=>{
+   e.preventDefault();b.setPointerCapture(e.pointerId);
+   pointers.set(e.pointerId,b.dataset.key);
+   if(b.dataset.key==='jump')jumpQueued=true;
+   refreshInputs();
+ });
+ const end=e=>{pointers.delete(e.pointerId);refreshInputs()};
+ b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);
+ b.addEventListener('lostpointercapture',end);
+ b.addEventListener('contextmenu',e=>e.preventDefault());
+}
+const map={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
+addEventListener('keydown',e=>{
+ if(map[e.code]){
+   e.preventDefault();
+   if(map[e.code]==='jump'&&!keys.has('jump'))jumpQueued=true;
+   keys.add(map[e.code]);refreshInputs();
+ }else if(e.code==='KeyP'&&!e.repeat){state.paused=!state.paused;updatePause()}
+});
+addEventListener('keyup',e=>{if(map[e.code]){keys.delete(map[e.code]);refreshInputs()}});
+addEventListener('blur',()=>{clearInputs();state.paused=true;updatePause()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInputs();state.paused=true;updatePause()}});
+function updatePause(){
+ const b=document.getElementById('pause');b.textContent=state.paused?'▶':'Ⅱ';
+ b.setAttribute('aria-label',state.paused?'Reprendre le jeu':'Mettre en pause');
+}
+document.getElementById('sound').addEventListener('click',e=>{
+ sound=!sound;e.currentTarget.textContent=sound?'♫':'♪';
+ e.currentTarget.setAttribute('aria-label',sound?'Couper le son':'Activer le son');beep(680);
+});
+document.getElementById('pause').addEventListener('click',()=>{
+ if(state.over)reset(1); else state.paused=!state.paused;updatePause();
+});
+document.getElementById('restart').addEventListener('click',()=>reset(1));
+function announce(s,d=1.5){state.notice=s;state.noticeTime=d}
+function score(n){state.score+=n;if(state.score>state.record){state.record=state.score;saveBest(state.record)}}
+function collidePlayer(x,y,w,h){
+ const p=state.player;
+ return p.x+PH>x&&p.x<x+w&&p.y+PH>y&&p.y<y+h;
+}
+function loseLife(){
+ const s=state,p=s.player;if(p.inv>0||s.over||!s.playing)return;
+ s.lives--;beep(170,.24);
+ if(s.lives<=0){s.over=true;announce('PARTIE TERMINÉE',Infinity);clearInputs();return}
+ const checkpoint=Math.max(0,Math.floor(s.highest/7)*7-7);
+ p.x=W/2;p.y=checkpoint*FLOOR;p.vy=0;p.grounded=true;p.inv=2.8;
+ s.camera=Math.max(0,(checkpoint-1)*FLOOR);
+ announce('UNE VIE PERDUE ! REPRISE AU POINT DE CONTRÔLE',2.2);
+}
+function phaseFinished(){
+ const s=state;
+ score(s.phase%5===0?75:35);beep(980,.14);
+ const phase=s.phase+1,oldScore=s.score,oldRecord=s.record,oldLives=s.lives;
+ reset(phase,true);state.score=oldScore;state.record=oldRecord;state.lives=oldLives;
+ state.playing=true;announce('PHASE '+phase+' — NOUVELLE ASCENSION',2.8);
+}
+function update(dt){
+ const s=state;if(s.paused||s.over)return;
+ dt=Math.min(dt,.034);s.time+=dt;
+ if(s.noticeTime!==Infinity)s.noticeTime=Math.max(0,s.noticeTime-dt);
+ const p=s.player;
+ if(!s.playing&&(held.left||held.right||jumpQueued)){s.playing=true;s.noticeTime=0}
+ if(!s.playing)return;
+ if(s.bonus){
+   s.bonusTime+=dt;
+   if(jumpQueued||s.bonusTime>1.8){jumpQueued=false;phaseFinished()}return;
+ }
+ p.inv=Math.max(0,p.inv-dt);
+ const horizontal=(held.right?1:0)-(held.left?1:0);
+ p.x+=horizontal*185*dt;
+ if(p.x>W)p.x=-PH;if(p.x<-PH)p.x=W;
+ if(jumpQueued&&p.grounded){
+   p.vy=330;p.grounded=false;beep(640,.065);
+ }
+ jumpQueued=false;
+ const oldY=p.y,oldHead=oldY+PH;
+ p.vy=Math.max(-500,p.vy-560*dt);
+ p.y+=p.vy*dt;
+ if(p.vy>0){
+   for(const row of s.rows){
+     if(row.y<=0||row.y>LAST*FLOOR)continue;
+     if(oldHead<=row.y && p.y+PH>=row.y){
+       const at=tileAt(row,p.x+PH/2);
+       if(at>0){
+         const k=Math.floor(clamp(p.x+PH/2,0,W-.01)/CELL);
+         row.tiles[k]--;
+         p.y=row.y-PH-.5;p.vy=-72;
+         if(at===1)score(2);
+         beep(at===1?500:260,.06);
+         break;
+       }
+     }
+   }
+ }
+ p.grounded=false;
+ if(p.vy<=0){
+   for(let i=s.rows.length-1;i>=0;i--){
+     const row=s.rows[i];
+     if(oldY>=row.y-.1 && p.y<=row.y && tileAt(row,p.x+PH/2)>0){
+       p.y=row.y;p.vy=0;p.grounded=true;
+       if(row.level>s.highest){
+         score(row.level-s.highest);s.highest=row.level;
+         beep(450,.025);
+       }
+       break;
+     }
+   }
+ }
+ if(p.y<0){p.y=0;p.vy=0;p.grounded=true}
+ if(p.y<s.camera-100){loseLife();return}
+ // Défilement par crans, comme sur les Game & Watch LCD.
+ const target=Math.max(0,(Math.floor(p.y/FLOOR)-1)*FLOOR);
+ if(target>s.camera)s.camera=target;
+ // Un Blockman parcourt l'étage et rebouche les trous.
+ for(const e of s.blockmen){
+   e.x+=e.dir*e.speed*dt;if(e.x<0){e.x=0;e.dir=1}
+   if(e.x>W-PH){e.x=W-PH;e.dir=-1}
+   e.tick+=dt;
+   const r=s.rows[e.row],k=Math.floor((e.x+PH/2)/CELL);
+   if(r.tiles[k]===0 && e.tick>.55){r.tiles[k]=2;e.tick=0;beep(180,.02)}
+   if(p.inv<=0&&collidePlayer(e.x,r.y,PH,19)){loseLife();return}
+ }
+ // Oiseaux traversant la zone de jeu.
+ s.nextBird-=dt;
+ if(s.nextBird<=0){
+   const row=Math.max(1,Math.min(24,Math.floor(p.y/FLOOR)+1));
+   s.birds.push({x:-27,y:row*FLOOR+25,vx:100+(s.phase*5)});
+   s.nextBird=6+5*rnd(s.time+s.phase*20);
+ }
+ s.birds=s.birds.filter(b=>b.x<W+40&&b.y>s.camera-40&&b.y<s.camera+H+80);
+ for(const bird of s.birds){
+   bird.x+=bird.vx*dt;
+   if(p.inv<=0&&collidePlayer(bird.x,bird.y,28,18)){loseLife();return}
+ }
+ // Après 25 étages, attraper l'oiseau (ou l'épée devant le dragon).
+ if(p.y>=LAST*FLOOR+24){
+   s.bonus=true;s.bonusTime=0;announce(s.phase%5===0?'DRAGON VAINCU !':'OISEAU ATTRAPÉ !',1.8);
+ }
+}
+function paint(){
+ const s=state,p=s.player,c=ctx;
+ c.fillStyle='#cbd6c8';c.fillRect(0,0,W,H);
+ c.strokeStyle='#aabdae';c.lineWidth=.8;
+ // Nuages caractéristiques de la Crystal Screen.
+ for(const cloud of [{x:55,y:65},{x:284,y:76},{x:178,y:125}]){
+   const x=cloud.x,y=cloud.y;
+   c.strokeStyle='#7fb6b1';c.lineWidth=3;c.beginPath();
+   c.moveTo(x-23,y+12);c.bezierCurveTo(x-36,y-1,x-20,y-15,x-7,y-11);
+   c.bezierCurveTo(x+4,y-32,x+19,y-22,x+21,y-9);
+   c.bezierCurveTo(x+46,y-10,x+48,y+15,x+23,y+15);
+   c.closePath();c.stroke();
+ }
+ const sy=y=>H-36-(y-s.camera);
+ // Plateaux formés de briques ; trous continuellement modifiables.
+ for(const row of s.rows){
+   const y=sy(row.y);if(y<35||y>H+12)continue;
+   for(let k=0;k<COLS;k++){
+     const hp=row.tiles[k];if(!hp)continue;
+     const x=k*CELL;
+     c.fillStyle=hp===1?'#61786c':'#34483d';
+     c.fillRect(x+2,Math.round(y),CELL-4,5);
+     c.fillRect(x+3,Math.round(y)+7,CELL-6,3);
+     if(hp===1){c.fillStyle='#b6c6b5';c.fillRect(x+7,y+1,5,3)}
+   }
+ }
+ // Petit repère d'étage.
+ const current=Math.min(LAST,Math.max(1,Math.floor(p.y/FLOOR)+1));
+ for(const e of s.blockmen){
+   const y=sy(s.rows[e.row].y);if(y<40||y>H+30)continue;
+   c.fillStyle='#395148';c.fillRect(e.x+5,y-22,14,16);c.fillRect(e.x+2,y-18,20,4);
+   c.fillRect(e.x+2,y-7,7,7);c.fillRect(e.x+15,y-7,7,7);
+   c.fillStyle='#d2dfbd';c.fillRect(e.x+8,y-16,3,3);c.fillRect(e.x+15,y-16,3,3);
+ }
+ for(const b of s.birds){
+   const y=sy(b.y);c.fillStyle='#385f53';c.fillRect(b.x+7,y-5,17,7);
+   c.fillRect(b.x+(Math.floor(s.time*9)%2?2:7),y-13,12,6);
+   c.fillRect(b.x+22,y-2,10,3);
+ }
+ if(s.phase>1){
+  const level=clamp(5+(s.phase%4)*3,1,23),y=sy(level*FLOOR);
+  if(y>45&&y<H){c.fillStyle='#486a54';for(let i=0;i<4;i++){
+   c.beginPath();c.moveTo(300+i*14,y);c.lineTo(307+i*14,y-16);c.lineTo(315+i*14,y);c.fill();
+  }}
+ }
+ // Oiseau de fin de niveau / dragon.
+ const topY=sy(LAST*FLOOR+55);
+ if(topY>15&&topY<H+30){
+   c.fillStyle='#314a3b';
+   if(s.phase%5===0){
+     c.fillRect(196,topY-18,65,24);c.fillRect(219,topY-35,22,21);
+     c.fillRect(254,topY-29,24,5);
+     c.fillStyle='#cfd6b8';c.fillRect(236,topY-29,5,4);
+   }else{
+     c.fillRect(218,topY-6,30,9);c.fillRect(224,topY-16,14,15);
+     c.fillRect(202,topY-23,20,10);c.fillRect(244,topY-23,20,10);
+   }
+ }
+ if(p.inv===0||Math.floor(s.time*8)%2===0){
+   const y=sy(p.y);
+   c.fillStyle='#263a32';c.fillRect(p.x+6,y-21,13,11);
+   c.fillRect(p.x+4,y-12,17,9);c.fillRect(p.x+4,y-4,7,5);c.fillRect(p.x+15,y-4,7,5);
+   c.fillStyle='#a4bb95';c.fillRect(p.x+13,y-18,3,3);
+   c.fillStyle='#334f40';c.fillRect(p.x+(horizontalFacing()),y-13,7,6);
+ }
+ // Bandeau LCD fixe.
+ c.fillStyle='#b5c7b8ee';c.fillRect(0,0,W,33);
+ c.fillStyle='#293d35';c.font='bold 16px monospace';c.textAlign='left';
+ c.fillText('PTS '+String(s.score).padStart(4,'0'),12,23);
+ c.fillText('VIES '+s.lives,158,23);
+ c.fillText('ÉTAGE '+current+'/25',290,23);
+ c.font='12px monospace';c.fillText('PHASE '+s.phase+' · RECORD '+s.record,12,H-9);
+ if(s.noticeTime>0&&!s.paused&&!s.over){
+   c.fillStyle='#263e35dc';c.fillRect(24,H-91,W-48,45);
+   c.fillStyle='#f0f4d8';c.textAlign='center';c.font='bold 14px sans-serif';
+   c.fillText(s.notice,W/2,H-64);
+ }
+ if(s.paused||s.over){
+   c.fillStyle='#1c312adf';c.fillRect(0,0,W,H);
+   c.fillStyle='#e8edd8';c.textAlign='center';c.font='bold 29px sans-serif';
+   c.fillText(s.over?'PARTIE TERMINÉE':'PAUSE',W/2,H/2-14);
+   c.font='16px sans-serif';c.fillText(s.over?'↻ pour recommencer':'▶ pour reprendre',W/2,H/2+22);
+ }
+}
+function horizontalFacing(){return held.left?1:held.right?19:1}
+function frame(now){
+ const dt=(now-last)/1000;last=now;update(dt);paint();requestAnimationFrame(frame);
+}
+reset(1);requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
