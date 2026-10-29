@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f0a16e">
+<title>Climber LCD — ascension des 25 étages</title>
+<style>
+:root{color-scheme:light;--coral:#f5a471;--coral2:#e57959;--ink:#1d3834;--cream:#fff4e3}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#ffecd6;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#322f28}
+body{overflow-x:hidden}
+button{font:inherit;touch-action:manipulation;cursor:pointer}
+.app{width:min(100%,850px);margin:auto;min-height:100dvh;display:flex;flex-direction:column;background:linear-gradient(145deg,#f6b07e,#e98768 75%);box-shadow:0 0 40px #7d3c2744}
+.top{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:13px 16px 9px}
+.brand{line-height:1.05;min-width:0}
+.brand b{display:block;font-size:clamp(24px,6.5vw,39px);letter-spacing:2px;color:#fff8ee;text-shadow:1px 2px #b8533d}
+.brand small{color:#572d28;font-weight:800;font-size:11px;letter-spacing:.08em}
+.options{display:flex;align-items:center;gap:5px}
+.icon{min-width:43px;height:43px;border-radius:13px;background:#fff7e9;border:2px solid #b55e47;color:#542d27;font-size:21px;font-weight:800}
+.shell{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:8px 12px;gap:12px}
+.screen-frame{background:linear-gradient(135deg,#fffaf4,#c6d2cb);border:4px solid #fdfcf3;box-shadow:0 6px 0 #b9614b,0 12px 19px #994b3454,inset 0 0 0 2px #aab4ad;border-radius:22px;padding:10px;max-width:820px;width:100%;margin:0 auto}
+.screen-inset{background:#4d6559;border:6px solid #3c5148;border-radius:8px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:640/380;image-rendering:pixelated;background:#e3efdb}
+.caption{text-align:center;font-size:clamp(12px,3.3vw,15px);color:#4f302a;font-weight:800;line-height:1.35;max-width:650px;margin:0 auto}
+.controls{padding:10px 14px max(18px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr 1.28fr;gap:12px;min-height:clamp(142px,25dvh,215px);touch-action:none}
+.control{border:4px solid #fff1dc;background:#5e5147;color:white;font-weight:900;font-size:clamp(35px,10vw,64px);border-radius:24px;box-shadow:0 8px 0 #493d34;user-select:none;-webkit-user-select:none;touch-action:none}
+.control.jump{background:#e85048;box-shadow:0 8px 0 #9b2d2c;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.control.jump span{font-size:clamp(17px,4vw,23px);letter-spacing:1px}
+.control.down{transform:translateY(6px);box-shadow:0 2px 0 #3b302a}
+.info{font-size:11px;text-align:center;color:#673d32;padding:0 12px 8px}
+button:focus-visible{outline:4px solid #193d36;outline-offset:3px}
+.guide{border:1px solid #dfb6a1;background:#fff5e8;margin:0 12px 12px;padding:12px 14px;border-radius:12px;font-size:14px}
+.guide summary{cursor:pointer;font-weight:800}
+.guide p{margin:8px 0 3px}
+@media(max-height:580px) and (orientation:landscape){
+ .app{width:100%;min-height:100dvh;height:100dvh;display:grid;grid-template-columns:minmax(0,60%) minmax(0,40%);grid-template-rows:51px 1fr}
+ .top{grid-column:1/-1;padding:4px 12px}
+ .brand b{font-size:22px}
+ .shell{grid-column:1;grid-row:2;padding:5px 8px}
+ .screen-frame{padding:4px;border-width:3px}
+ .screen-inset{border-width:3px}
+ .caption,.info,.guide{display:none}
+ .controls{grid-column:2;grid-row:2;min-height:0;height:100%;padding:15px 10px 17px;gap:8px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top">
+ <div class="brand"><b>CLIMBER <span style="font-size:.52em">LCD</span></b><small>ASCENSION · 1986 REVISITÉ</small></div>
+ <div class="options">
+  <button class="icon" id="sound" type="button" aria-label="Activer le son">♪</button>
+  <button class="icon" id="pause" type="button" aria-label="Pause">Ⅱ</button>
+  <button class="icon" id="restart" type="button" aria-label="Recommencer">↻</button>
+ </div>
+</header>
+<section class="shell" aria-label="Écran de jeu">
+ <div class="screen-frame"><div class="screen-inset">
+  <canvas id="game" width="640" height="380" role="img" aria-label="Jeu LCD d'escalade : vingt-cinq étages, briques cassables, ennemis et bonus"></canvas>
+ </div></div>
+ <p class="caption">GRIMPE ! Casse les briques en <b>2 sauts</b> · traverse un trou, puis déplace-toi en l'air pour atterrir sur le plateau supérieur.</p>
+</section>
+<nav class="controls" aria-label="Commandes tactiles">
+ <button class="control" type="button" data-key="left" aria-label="Aller à gauche">◀</button>
+ <button class="control" type="button" data-key="right" aria-label="Aller à droite">▶</button>
+ <button class="control jump" type="button" data-key="jump" aria-label="Sauter">▲<span>SAUT</span></button>
+</nav>
+<details class="guide"><summary>Comment jouer · règles et sources</summary>
+ <p>Déplace-toi de gauche à droite, saute pour gravir <b>25 étages par phase</b>. Frappe deux fois les briques au-dessus de toi pour les ouvrir. Les Blockmen peuvent réparer les trous ; évite-les, ainsi que les oiseaux et les épines. Après chaque phase, essaie d'attraper Hentori en deux sauts ; toutes les cinq phases, affronte le dragon Dragalo avec l'épée. Trois erreurs terminent la partie, avec reprise sept étages plus bas.</p>
+ <p>Les sprites sont des dessins originaux en positions fixes pour retrouver la sensation LCD. Le jeu est une <b>récréation indépendante</b> : ce n'est ni une ROM Nintendo, ni une émulation exacte ; le rythme, le score et certains comportements sont adaptés faute de documentation complète.</p>
+</details>
+<div class="info">Une création indépendante inspirée du Climber Crystal Screen. Aucune image ni ROM Nintendo utilisée.</div>
+</main>
+<script>
+(()=>{
+"use strict";
+const cvs=document.getElementById("game"),c=cvs.getContext("2d"),W=640,H=380,N=20,CW=W/N,FLOOR=102,TOP=25;
+const controlEls=[...document.querySelectorAll(".control")],pressed=new Set(),ptrs=new Map(),keys=new Set();
+let previous=performance.now(),elapsed=0,sound=false,ac=null,game,mutedByUser=false;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const hash=n=>{const t=Math.sin(n*137.29+5.811)*43758.5453;return t-Math.floor(t)};
+const patterns={
+ hero:["00011110000","00111111000","00101101000","00111111000","00011110000","00011110000","01111111100","11111111110","01011110100","00011011000","00110001100","01100000110"],
+ lift:["00011110000","00111111000","00101101000","00111111000","00011110000","11111111111","01011110100","00011110000","00011011000","00011011000","00110001100","01100000110"],
+ block:["00111111100","01111111110","11011011011","11111111111","01111111110","00111111100","01101110110","11001110011","11001110011"],
+ bird:["00000010000000","00000111000000","01101111110000","11111111111100","00111111111111","00011111111000","00001111000000"],
+ hentori:["00000001110000000","00000011111000000","00111111111111000","11111111111111110","00111111111111111","00011111111111000","00000111111000000"],
+ thorn:["000001000000","010001000010","011011010110","001111111100","000111111000","001111111100"],
+ dragon:["00000000111110000000","00110011111111110000","01111111111111111100","11111111101111111110","00111111111111111000","00011111111111110000","00001111111111000000","00011001100011000000"],
+ sword:["00010000","00111000","00111000","00111000","00111000","01111100","00111000","00111000","00111000","00010000"]
+};
+const bmp=Object.fromEntries(Object.entries(patterns).map(([k,v])=>[k,v.map(s=>[...s].map(x=>x==="1"))]));
+function sprite(name,x,y,scale=3,flip=false,color="#274338"){
+ const bits=bmp[name],height=bits.length,width=bits[0].length;
+ c.fillStyle=color;
+ for(let j=0;j<height;j++)for(let i=0;i<width;i++)if(bits[j][i]){
+  c.fillRect(Math.round(x+(flip?width-1-i:i)*scale),Math.round(y+j*scale),scale,scale);
+ }
+}
+const getBest=()=>{try{return +(localStorage.getItem("climberlcd-best")||0)}catch{return 0}};
+const setBest=n=>{try{localStorage.setItem("climberlcd-best",String(n))}catch{}};
+function beep(freq=520,len=.055){
+ if(!sound)return;
+ try{
+  ac ||= new (window.AudioContext||window.webkitAudioContext)();
+  if(ac.state==="suspended")ac.resume();
+  const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=freq;
+  g.gain.setValueAtTime(.026,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+len);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+len);
+ }catch{}
+}
+function tile(row,col){return row?.tiles[((col%N)+N)%N]||0}
+function makeRows(phase){
+ const rows=[{tiles:Array(N).fill(2),moving:false,shift:0,spikes:[]}];
+ for(let r=1;r<=TOP;r++){
+  const a=phase*250+r*19,tiles=Array(N).fill(2);
+  let gap=3+Math.floor(hash(a)*13);
+  if(r===1)gap=9;
+  for(let k=0;k<3;k++)tiles[(gap+k)%N]=0;
+  if(r>2 && r%3!==0){
+   const other=2+Math.floor(hash(a+17)*15);
+   for(let k=0;k<2;k++)tiles[(other+k)%N]=0;
+  }
+  const moving=r>=6 && (r+phase)%6===0;
+  const spikes=(phase>=2&&r>=4 && r%4===0)?[Math.floor(hash(a+54)*N)]:[];
+  rows.push({tiles,moving,shift:0,spikes});
+ }
+ return rows;
+}
+function begin(phase=1,keep=false){
+ const prior=game;
+ const newGame={
+  phase,rows:makeRows(phase),highest:0,camera:0,score:keep?prior.score:0,record:keep?prior.record:getBest(),
+  misses:keep?prior.misses:0,player:{col:10,y:0,from:0,jumpTick:-1,onFloor:0,inv:0},
+  blockmen:[],birds:[],tick:0,playing:false,paused:false,over:false,mode:"play",bonusTicks:0,bonusAttempts:0,bonusPos:0,
+  nextBlock:36,nextBird:47,notice:keep?"PHASE "+phase+" · BONNE ASCENSION !":"◀  ▶  OU SAUT POUR COMMENCER",noticeFor:keep?30:9999,started:false
+ };
+ game=newGame;resetInputs();
+ document.getElementById("pause").textContent="Ⅱ";
+ document.getElementById("pause").setAttribute("aria-label","Pause");
+}
+function resetInputs(){ptrs.clear();pressed.clear();keys.clear();controlEls.forEach(el=>el.classList.remove("down"))}
+function updateButtons(){
+ pressed.clear();for(const k of keys)pressed.add(k);for(const k of ptrs.values())pressed.add(k);
+ controlEls.forEach(el=>el.classList.toggle("down",pressed.has(el.dataset.key)));
+}
+for(const el of controlEls){
+ el.addEventListener("pointerdown",e=>{
+  e.preventDefault();el.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,el.dataset.key);updateButtons();
+  if(el.dataset.key==="jump")game.jumpAsked=true;
+ });
+ const up=e=>{ptrs.delete(e.pointerId);updateButtons()};
+ el.addEventListener("pointerup",up);
+ el.addEventListener("pointercancel",up);
+ el.addEventListener("lostpointercapture",up);
+ el.addEventListener("contextmenu",e=>e.preventDefault());
+}
+const keymap={ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",Space:"jump",ArrowUp:"jump",KeyW:"jump",Enter:"jump"};
+addEventListener("keydown",e=>{
+ if(!keymap[e.code])return;e.preventDefault();
+ if(!keys.has(keymap[e.code]) && keymap[e.code]==="jump")game.jumpAsked=true;
+ keys.add(keymap[e.code]);updateButtons();
+});
+addEventListener("keyup",e=>{if(keymap[e.code]){e.preventDefault();keys.delete(keymap[e.code]);updateButtons()}});
+addEventListener("blur",()=>{resetInputs();game.paused=true;updatePause()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){resetInputs();game.paused=true;updatePause()}});
+function updatePause(){
+ const btn=document.getElementById("pause");btn.textContent=game.paused?"▶":"Ⅱ";
+ btn.setAttribute("aria-label",game.paused?"Reprendre":"Pause");
+}
+document.getElementById("pause").addEventListener("click",()=>{
+ if(game.over)begin(1);else game.paused=!game.paused;updatePause();
+});
+document.getElementById("restart").addEventListener("click",()=>begin(1));
+document.getElementById("sound").addEventListener("click",e=>{
+ sound=!sound;e.currentTarget.textContent=sound?"♫":"♪";
+ e.currentTarget.setAttribute("aria-label",sound?"Couper le son":"Activer le son");
+ beep(690);
+});
+function note(msg,ticks=22){game.notice=msg;game.noticeFor=ticks}
+function points(n){
+ const g=game,old=g.score;g.score=Math.min(999,g.score+n);
+ if(old<300&&g.score>=300){g.misses=0;note("300 POINTS ! VIES RÉTABLIES",34);beep(850,.2)}
+ if(g.score>g.record){g.record=g.score;setBest(g.record)}
+}
+function solidOn(row,col){return tile(game.rows[row],col)>0}
+function fail(){
+ const g=game,p=g.player;
+ if(p.inv>0||g.over||!g.started)return;
+ g.misses++;beep(210,.23);
+ if(g.misses>=3){g.over=true;g.mode="over";note("FIN DE PARTIE",999);resetInputs();return}
+ const ck=Math.max(0,Math.floor(g.highest/7)*7-7);
+ p.col=10;p.y=ck*FLOOR;p.from=p.y;p.jumpTick=-1;p.onFloor=ck;p.inv=26;
+ g.camera=Math.max(0,Math.max(0,ck-1)*FLOOR);
+ note("ERREUR · REPRISE 7 ÉTAGES PLUS BAS",28);
+}
+function reachFloor(row){
+ if(row>game.highest){
+  points(row-game.highest);game.highest=row;
+  if(row>=TOP){game.mode="bonus";game.bonusTicks=0;game.bonusAttempts=0;game.bonusPos=0;note(row+" ÉTAGES ! ATTRAPE LE BONUS",25);beep(870,.15)}
+ }
+}
+function newBlockman(){
+ const g=game,row=Math.max(1,Math.min(24,Math.floor(g.player.y/FLOOR)+Math.floor(hash(g.tick)*3)));
+ const col=hash(g.tick+g.phase*17)>.5?0:N-1;
+ g.blockmen.push({row,col,dir:col===0?1:-1,tick:0});
+}
+function makeBird(){
+ const g=game,row=Math.max(1,Math.min(24,Math.floor(g.player.y/FLOOR)+1));
+ g.birds.push({row,col:0,tick:0});
+}
+function phaseNext(){
+ const g=game;
+ points(g.phase%5===0?12:5);
+ const p=g.phase+1;begin(Math.min(99,p),true);game.playing=true;game.started=true;
+ note(p===99?"DERNIÈRE PHASE !":"PHASE "+p+" · LES OBSTACLES CHANGENT",34);beep(990,.12);
+}
+const JUMP=[0,29,58,89,121,136,119,94,64,31,0];
+function gameTick(){
+ const g=game,p=g.player;
+ if(g.over||g.paused)return;
+ g.tick++;if(g.noticeFor>0)g.noticeFor--;
+ if(!g.started){
+  if(pressed.size||g.jumpAsked){g.started=true;g.playing=true;note("TROUVE UN PASSAGE DANS LES BRIQUES",28)}
+  else return;
+ }
+ if(g.mode==="bonus"){
+  // Two timed jumps: Hentori, or sword and Dragalo on each fifth phase.
+  g.bonusTicks++;
+  g.bonusPos=(g.bonusTicks*2)%N;
+  if(g.jumpAsked || (pressed.has("jump")&&g.bonusTicks%7===0)){
+   const d=Math.abs(g.bonusPos-p.col),distance=Math.min(d,N-d);
+   g.bonusAttempts++;beep(670,.08);
+   if(distance<=2){
+    note(g.phase%5===0?"ÉPÉE ! DRAGALO EST VAINCU":"HENTORI ATTRAPÉ !",22);
+    phaseNext();return;
+   }
+   note("BONUS MANQUÉ · ESSAI "+g.bonusAttempts+"/2",16);
+  }
+  g.jumpAsked=false;
+  if(g.bonusAttempts>=2||g.bonusTicks>210){phaseNext();return}
+  if(pressed.has("left"))p.col=(p.col+N-1)%N;
+  if(pressed.has("right"))p.col=(p.col+1)%N;
+  return;
+ }
+ if(pressed.has("left")&&!pressed.has("right"))p.col=(p.col+N-1)%N;
+ if(pressed.has("right")&&!pressed.has("left"))p.col=(p.col+1)%N;
+ p.inv=Math.max(0,p.inv-1);
+ const was=p.y;
+ if(p.jumpTick<0 && (g.jumpAsked||pressed.has("jump"))){
+  p.from=p.y;p.jumpTick=0;beep(660,.055);
+ }
+ g.jumpAsked=false;
+ if(p.jumpTick>=0){
+  p.jumpTick++;
+  const old=p.y,level=p.onFloor;
+  p.y=p.from+JUMP[Math.min(p.jumpTick,JUMP.length-1)];
+  const row=level+1;
+  if(p.jumpTick<=5 && row<=TOP && old+38<row*FLOOR && p.y+38>=row*FLOOR){
+   const tiles=g.rows[row],v=tile(tiles,p.col);
+   if(v>0){
+    tiles.tiles[p.col]=v-1;
+    if(v===1)note("BRIQUE OUVERTE ! TRAVERSE LE TROU",14);
+    beep(v===1?560:380,.055);
+    p.jumpTick=7;
+    p.y=p.from+70;
+   }
+  }
+  if(p.jumpTick>=6 && row<=TOP && was>=row*FLOOR && p.y<=row*FLOOR && solidOn(row,p.col)){
+   p.y=row*FLOOR;p.onFloor=row;p.jumpTick=-1;beep(460,.03);reachFloor(row);
+  }else if(p.jumpTick>=JUMP.length-1){
+   p.jumpTick=-1;
+   if(!solidOn(p.onFloor,p.col)){
+    p.onFloor=Math.max(0,p.onFloor-1);
+    p.y=p.onFloor*FLOOR;
+    if(p.y<g.camera-45){fail();return}
+   }else p.y=p.onFloor*FLOOR;
+  }
+ }
+ // Standing on gap means falling through.
+ if(p.jumpTick<0&&!solidOn(p.onFloor,p.col)){
+  p.onFloor=Math.max(0,p.onFloor-1);p.y=p.onFloor*FLOOR;
+  if(p.y<g.camera-45){fail();return}
+ }
+ // Blockman appears if the player stays too long; may fill a gap.
+ g.nextBlock--;
+ if(g.nextBlock<=0){newBlockman();g.nextBlock=Math.max(20,41-g.phase*2)}
+ for(const e of g.blockmen){
+  e.tick++;if(e.tick%Math.max(2,5-Math.floor(g.phase/5))!==0)continue;
+  e.col+=e.dir;
+  if(e.col<0||e.col>=N){e.dir*=-1;e.col=clamp(e.col,0,N-1)}
+  const row=g.rows[e.row];
+  if(!tile(row,e.col)){row.tiles[e.col]=2;e.row=-1;beep(230,.035);continue}
+  if(p.inv===0&&p.jumpTick<0&&p.onFloor===e.row&&p.col===e.col){fail();return}
+ }
+ g.blockmen=g.blockmen.filter(e=>e.row>=0&&e.row>=Math.floor(g.camera/FLOOR)-1);
+ g.nextBird--;
+ if(g.nextBird<=0){makeBird();g.nextBird=Math.max(18,45-g.phase*2)}
+ for(const b of g.birds){
+  b.tick++;if(b.tick%2===0)b.col++;
+  if(p.inv===0 && p.onFloor===b.row && Math.abs(p.col-b.col)<=1 && p.jumpTick<0){fail();return}
+ }
+ g.birds=g.birds.filter(b=>b.col<N+2&&b.row>=Math.floor(g.camera/FLOOR)-1);
+ // Moving platforms: discrete 1-segment shifts in selected rows.
+ if(g.tick%18===0){
+  for(let r=1;r<=TOP;r++){
+   const row=g.rows[r];if(!row.moving)continue;
+   row.tiles.unshift(row.tiles.pop());
+   row.spikes=row.spikes.map(s=>(s+1)%N);
+  }
+ }
+ // Thorny hazards, starting on later phases.
+ for(let r=1;r<=TOP;r++){
+  if(p.inv===0&&p.jumpTick<0&&p.onFloor===r&&g.rows[r].spikes.includes(p.col)){fail();return}
+ }
+ // Scroll one whole floor at a time. Only 3 floors visible.
+ const floor=Math.max(0,Math.floor(p.y/FLOOR));
+ g.camera=Math.max(g.camera,Math.max(0,floor-1)*FLOOR);
+ if(p.y<g.camera-45){fail();return}
+}
+function drawLCDtile(x,y,hp){
+ if(!hp)return;
+ c.fillStyle=hp===1?"#78928a":"#2b5149";
+ c.fillRect(x+2,y,CW-4,5);c.fillRect(x+3,y+8,CW-6,4);
+ if(hp===1){c.fillStyle="#bfd4c7";c.fillRect(x+12,y+1,8,5);c.fillRect(x+8,y+8,8,4)}
+}
+function line(p1,p2,width=2){c.beginPath();c.moveTo(...p1);c.lineTo(...p2);c.lineWidth=width;c.stroke()}
+function clouds(){
+ c.strokeStyle="#82bdb7";c.lineWidth=4;
+ [[78,107,40],[318,83,37],[535,142,27]].forEach(([x,y,r])=>{
+  c.beginPath();c.moveTo(x-r,y+10);
+  c.bezierCurveTo(x-r-11,y-8,x-r+5,y-25,x-r+21,y-18);
+  c.bezierCurveTo(x-15,y-52,x+13,y-49,x+21,y-20);
+  c.bezierCurveTo(x+r+21,y-25,x+r+24,y+10,x+r,y+12);
+  c.closePath();c.stroke();
+ });
+}
+function draw(){
+ const g=game,p=g.player;
+ c.fillStyle="#e6f3dd";c.fillRect(0,0,W,H);
+ clouds();
+ const sy=y=>H-52-(y-g.camera);
+ // Static LCD positions; graphic is redrawn only in discrete sprite frames.
+ for(let r=0;r<=TOP;r++){
+  const row=g.rows[r],y=Math.round(sy(r*FLOOR));
+  if(y<-18||y>H+14)continue;
+  for(let col=0;col<N;col++)drawLCDtile(col*CW,y,row.tiles[col]);
+  for(const col of row.spikes)sprite("thorn",col*CW+1,y-21,2,false,"#496d54");
+  if(row.moving){
+   c.fillStyle="#577b71";
+   c.fillRect(6,y-12,7,7);c.fillRect(W-13,y-12,7,7);
+  }
+ }
+ for(const e of g.blockmen){
+  const y=sy(e.row*FLOOR);
+  if(y>40&&y<H+20)sprite("block",e.col*CW-2,y-34,3,g.tick%10<5,"#2c5246");
+ }
+ for(const b of g.birds){
+  const y=sy(b.row*FLOOR+34);
+  if(y>40&&y<H+20)sprite("bird",b.col*CW-2,y-15,2,g.tick%6<3,"#326b5c");
+ }
+ if(g.mode==="bonus"){
+  const y=sy(TOP*FLOOR+40),x=g.bonusPos*CW;
+  if(g.phase%5===0){
+   sprite("dragon",W/2-65,65,5,false,"#335a4c");
+   sprite("sword",x,145,4,false,"#497d69");
+   c.fillStyle="#315348";c.font="bold 18px monospace";c.fillText("ÉPÉE → DRAGALO",12,97);
+  }else sprite("hentori",x,132,3,g.tick%8<4,"#2d6355");
+ }
+ if(p.inv===0||g.tick%4<2){
+  const px=p.col*CW-2,py=sy(p.y)-39;
+  sprite(p.jumpTick>=0?"lift":"hero",px,py,3,pressed.has("left")&&!pressed.has("right"),"#263e36");
+ }
+ // Score strip is always readable: bright background and dark text.
+ c.fillStyle="#fcfff1ef";c.fillRect(0,0,W,37);
+ c.fillStyle="#213e35";c.font="bold 21px monospace";c.textAlign="left";
+ c.fillText("PTS "+String(g.score).padStart(3,"0"),12,26);
+ c.fillText("PH "+String(g.phase).padStart(2,"0"),188,26);
+ c.fillText("ÉT "+String(Math.min(25,Math.floor(p.y/FLOOR)+1)).padStart(2,"0")+"/25",309,26);
+ c.fillText("✕ "+g.misses+"/3",520,26);
+ c.font="bold 15px monospace";c.fillText("RECORD "+String(g.record).padStart(3,"0"),12,H-11);
+ if(g.mode==="bonus"){
+  c.fillStyle="#fcfff4";c.fillRect(130,51,380,44);
+  c.fillStyle="#214137";c.textAlign="center";c.font="bold 23px sans-serif";
+  c.fillText(g.phase%5===0?"DRAGALO · ATTRAPE L'ÉPÉE":"HENTORI · ATTRAPE L'OISEAU",W/2,80);
+  c.textAlign="left";c.font="bold 15px monospace";
+  c.fillText("ESSAIS "+(2-g.bonusAttempts),470,H-11);
+ }
+ if(g.noticeFor>0&&g.mode!=="bonus"&&!g.paused&&!g.over){
+  c.fillStyle="#315b4aee";c.fillRect(26,H-107,W-52,49);
+  c.textAlign="center";c.fillStyle="#fffbe8";c.font="bold 20px system-ui";
+  c.fillText(g.notice,W/2,H-76);
+ }
+ if(g.over||g.paused){
+  c.fillStyle="#254139e9";c.fillRect(0,0,W,H);
+  c.textAlign="center";c.fillStyle="#fffbe9";c.font="bold 34px sans-serif";
+  c.fillText(g.over?"PARTIE TERMINÉE":"PAUSE",W/2,H/2-9);
+  c.font="19px sans-serif";c.fillText(g.over?"↻ pour recommencer":"▶ pour reprendre",W/2,H/2+26);
+ }
+}
+function frame(now){
+ const delta=Math.min(80,now-previous);previous=now;
+ if(!game.paused&&!game.over){
+  elapsed+=delta;
+  const interval=Math.max(60,110-(game.phase-1)*4);
+  while(elapsed>=interval){elapsed-=interval;gameTick()}
+ }else elapsed=0;
+ draw();requestAnimationFrame(frame);
+}
+begin(1);requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
