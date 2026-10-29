@@ -1,51 +1,45 @@
-# Mes jeux LCD — Climber et Bomb Sweeper
+# Mes deux jeux LCD
 
-**Adresse du site :** https://ludodulac.github.io/climber-tactile/
+**Jouer :** https://ludodulac.github.io/climber-tactile/
 
-Le site propose **deux jeux indépendants**, accessibles depuis un menu commun, avec des commandes tactiles adaptées aux smartphones.
+Deux jeux indépendants sont accessibles dans le menu d'accueil : **Climber LCD** et **Bomb Sweeper LCD**. Ce sont des créations autonomes inspirées des appareils électroniques Nintendo, et non des ROM ou des reproductions certifiées conformes.
 
-| Page | Contenu |
-| --- | --- |
-| `index.html` | **Menu** permettant de choisir entre Climber LCD et Bomb Sweeper LCD ; lien vers Zelda Game & Watch sur RetroFab. |
-| `climber.html` | Premier jeu : ascension LCD sur 25 étages, avec gros boutons gauche/droite/saut. |
-| `bomb-sweeper.html` | Deuxième jeu : puzzles de désamorçage sur double écran, direction à quatre touches, modes GAME A et GAME B. |
-| `lcd-reconstruction.html` | Sauvegarde de la version Climber du 29 octobre 2026. |
-| `adaptation.html` | Prototype antérieur du jeu d'ascension. |
-| `RECHERCHES_ET_REGLES.md` | Recherche et limites connues pour Climber Crystal Screen. |
-| `BOMB_SWEEPER_REGLES.md` | Règles sources et limites de la récréation de Bomb Sweeper. |
+## Fichiers
 
-## Bomb Sweeper — comment jouer
+- `index.html` : menu pour choisir un jeu, avec un lien externe vers Zelda Game & Watch.
+- `climber.html` : premier jeu, ascension LCD avec gros boutons.
+- `bomb-sweeper.html` : deuxième jeu, déminage LCD avec grosses flèches, Game A/B.
+- `bomb-sweeper-v1.html` : archive de notre première version Bomb Sweeper.
+- `bomb-sweeper-v2.html` : copie de la reconstruction plus documentée.
+- `lcd-reconstruction.html` : ancienne copie Climber.
+- `adaptation.html` : toute première adaptation Climber.
+- `BOMB_SWEEPER_REGLES.md` : **recherches détaillées et distinction entre règles vérifiées et hypothèses**.
+- `RECHERCHES_ET_REGLES.md` : recherches Climber.
 
-Dans le jeu de Nintendo de 1987, le héros John Solver doit traverser des égouts et trouver **une bombe** posée par Dynamite Jack **avant la fin du compte à rebours**. Il peut **pousser** une paroi mobile si la case derrière celle-ci est libre. Atteindre une bombe désamorce les autres et rapporte un nombre de points dépendant du temps restant.
+## Bomb Sweeper : ce que nous savons du vrai jeu de 1987
 
-La récréation ici comprend :
-- **GAME A : 10 labyrinthes aux dispositions prédéfinies, puis un niveau bonus horizontal à défilement.**
-- **GAME B : 15 labyrinthes variables par cycle, plus rapides.**
-- Un personnage et des obstacles avec dessins originaux dans une interface LCD volontairement **lumineuse**.
-- Gros boutons tactiles **▲ ◀ ▼ ▶**, clavier flèches/WASD.
-- **Annuler** le dernier déplacement, **Indice** (coûte 6 secondes), Pause, Son.
-- Des murs permanents verts, des parois **jaunes à pousser**, des bombes et un compte à rebours.
-- Un maximum de **trois explosions** avant la fin de partie ; les manques ne sont pas effacés au score 300.
+- **Game A** : 80 labyrinthes dont 45 différents et 35 réutilisés, huit bonus avec défilement horizontal ; les nouveaux groupes de dix réutilisent les cinq derniers puzzles puis ajoutent cinq nouveaux.
+- **Game B** : séries de 15 labyrinthes variables ; chrono 40 secondes, puis 36, 32… jusqu'à 4 secondes minimum selon la progression.
+- Déplacement dans quatre directions. Les obstacles mobiles sont des **parois fines horizontales et verticales**, à pousser si l'espace derrière est libre.
+- Atteindre **une** bombe désamorce celles du niveau. Trois erreurs terminent la partie ; le score augmente avec le temps restant.
 
-La disposition des 10 labyrinthes, leur nombre précis de parois, les secondes allouées, la musique, les graphismes, le système d'indice et les mouvements du personnage **sont des créations / adaptations indépendantes**. Il ne s'agit **pas** d'une émulation de la ROM Nintendo et le programme source ou les graphismes de RetroFab ne sont pas copiés.
+Les détails historiques et sources sont dans `BOMB_SWEEPER_REGLES.md`.
 
-## Zelda Game & Watch en ligne
+## Ce que notre jeu fait, et ce qu'il ne fait pas
 
-Le Zelda d'origine (1989) est jouable depuis le navigateur à l'adresse de son auteur :
-https://itizso.itch.io/nintendo-zelda
+Notre version propose un écran plus clair, de **gros boutons tactiles**, des parois dessinées comme des traits et la progression de **80 étapes / 8 bonus** en A. Les configurations choisies en mode A suivent le rythme des reprises et nouveautés ; les 80 sont résolubles lors du test technique.
 
-Sur cette page, cliquer sur « Run game ». Ce jeu est **externe** au présent dépôt.
+**IMPORTANT — Les positions exactes des murs, bombes et personnages des 45 labyrinthes Nintendo ne sont PAS encore reproduites.** Les 45 configurations de notre version ont été créées pour ce projet ; ce ne sont pas les cartes originales. Le bonus reste également une approximation. Cela ne doit pas être présenté comme une copie fidèle.
 
-## Déploiement
+Fonctions supplémentaires non originales : indice, annulation, pause, bouton son.
 
-GitHub Pages → main / (root). Aucun serveur, framework, accès payant ni API. Chaque jeu est un fichier HTML autonome.
+## Vérifications
 
-## Vérifications (29 octobre 2026)
+- Publication des fichiers et syntaxe JavaScript contrôlées via le connecteur GitHub.
+- 80 étapes A du générateur résolubles dans les tests ; bonus traversable.
+- Transition A 10 → bonus → 11 et B 40 → 36 vérifiées programmatiquement.
+- **Jeu sur le vrai téléphone Android et GitHub Pages non testés ici.**
 
-- Fichiers publiés sur la branche `main`, dépôts et chemins vérifiés par lecture GitHub.
-- Bomb Sweeper : syntaxe JS vérifiée ; 10 configurations A + 15 B toutes résolubles lors des tests de génération ; niveau bonus résoluble ; 11 tests de mécanismes réussis (score, déplacement, annulation, indice, progression, temps, défaite).
-- À vérifier **sur le véritable téléphone Android** : rendu visuel, confort des boutons, animations, audio et déploiement effectif de GitHub Pages.
+## Zelda (jeu d'origine)
 
-## Modifications ultérieures
-
-Il suffit de modifier directement la page HTML du jeu concerné. Les deux jeux sont indépendants et le menu reste en place.
+Jouer via RetroFab sur le site de son créateur : https://itizso.itch.io/nintendo-zelda
