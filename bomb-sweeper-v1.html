@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f997d">
+<meta name="description" content="Bomb Sweeper LCD : démine les bombes dans un labyrinthe, pousse les murs et termine le parcours avant la fin du chrono. Jeu tactile indépendant.">
+<title>Bomb Sweeper LCD — Jeu de réflexion rétro</title>
+<style>
+:root{--evergreen:#19473e;--teal:#247464;--lime:#e6f6d8;--ivory:#fcf6e6;--ink:#203c36;--gold:#f6c56d;--red:#e95d51}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#e0efe4;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button,a{font:inherit;-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+a{text-decoration:none}
+.page{max-width:820px;margin:auto;min-height:100dvh;background:linear-gradient(155deg,#6ec2a5 0%,#3b957d 62%,#266c5a 100%);padding:9px 12px max(18px,env(safe-area-inset-bottom));box-shadow:0 5px 40px #183c3040}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.brand{min-width:0;line-height:1.06;color:#fff9df}
+.brand strong{font-size:clamp(23px,6.8vw,35px);letter-spacing:1px;text-shadow:1px 2px #155846}
+.brand small{display:block;font-size:11px;letter-spacing:.14em;font-weight:800;color:#f4e7ba;margin-top:4px}
+.home{display:inline-flex;justify-content:center;align-items:center;text-align:center;padding:9px 12px;min-height:43px;border-radius:13px;color:#fffbe9;border:1px solid #c7e9d9;background:#145b4b;font-weight:800;font-size:13px}
+.console{padding:11px 10px 13px;border:3px solid #a7e1c5;border-radius:23px;background:linear-gradient(140deg,#f7f9ea,#cfe1cf);box-shadow:0 8px 0 #185d4e,0 12px 26px #183d3577}
+.status{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.stat{border:1px solid #c9d5c8;border-radius:8px;background:#edf3e8;text-align:center;padding:5px 2px;min-width:0}
+.stat small{display:block;color:#527263;font-size:9px;text-transform:uppercase;font-weight:800;letter-spacing:.06em}
+.stat b{display:block;font-size:clamp(14px,4.1vw,20px);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .danger{color:#b83735}
+.screens{display:flex;flex-direction:column;gap:7px;max-width:670px;margin:auto}
+.frame{border:5px solid #e8e5d9;background:#a8b9a6;border-radius:13px;box-shadow:inset 0 0 0 3px #4c6b5f,0 3px 0 #9aaea2;padding:8px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;background:#eff6d9;image-rendering:pixelated}
+#city{aspect-ratio:660/142}
+#maze{aspect-ratio:660/430;touch-action:manipulation}
+.screen-title{font-weight:900;color:#2f6456;text-align:center;letter-spacing:.09em;font-size:11px;margin:2px 0 0}
+.toolbar{display:flex;justify-content:space-between;gap:7px;max-width:670px;margin:12px auto 0}
+.tool{min-height:43px;flex:1;border-radius:12px;border:1px solid #38685a;background:#fff8e6;color:#1e5145;font-weight:850;font-size:clamp(11px,2.9vw,14px);white-space:nowrap}
+.tool:disabled{opacity:.45}
+.controls{height:clamp(165px,26dvh,230px);max-width:670px;margin:10px auto 0;display:grid;grid-template:repeat(2,1fr)/repeat(3,1fr);gap:8px;touch-action:none}
+.pad{border-radius:20px;border:3px solid #c6f4db;background:linear-gradient(#377a68,#205748);color:#fff;font-size:clamp(27px,8vw,45px);font-weight:900;box-shadow:0 5px 0 #134437;user-select:none;-webkit-user-select:none;touch-action:none}
+.pad[data-dir="up"]{grid-area:1/2}
+.pad[data-dir="left"]{grid-area:2/1}
+.pad[data-dir="down"]{grid-area:2/2}
+.pad[data-dir="right"]{grid-area:2/3}
+.pad.down{transform:translateY(4px);box-shadow:0 1px 0 #134437;filter:brightness(1.14)}
+.message{min-height:22px;max-width:670px;margin:9px auto 1px;color:#fff6d7;text-align:center;font-weight:750;font-size:13px;line-height:1.25}
+.notes{font-size:13px;max-width:670px;margin:8px auto;color:#f9f9e5}
+.notes summary{cursor:pointer;font-weight:800}
+.notes p{line-height:1.5;margin:8px 0}
+.notes a{color:#fff1ac;text-decoration:underline}
+.cover{position:fixed;inset:0;z-index:5;background:#173d35d9;display:grid;place-items:center;padding:15px;overflow-y:auto}
+.cover[hidden]{display:none}
+.cover-card{width:min(100%,460px);background:#fff8e9;color:#24483d;border:4px solid #fbd18c;border-radius:24px;box-shadow:0 20px 60px #112d2b80;padding:19px}
+.cover-card h1{font-size:clamp(27px,8vw,40px);line-height:1.05;margin:4px 0 10px;letter-spacing:.03em}
+.cover-card p{margin:8px 0 13px;line-height:1.45}
+.sticker{display:inline-block;padding:4px 9px;border-radius:8px;background:#d7eee0;color:#276a58;font-weight:900;font-size:12px;letter-spacing:.07em}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.choose button{min-height:108px;border:2px solid #2e7561;border-radius:14px;background:#348b72;color:#fffefa;padding:10px 8px;text-align:left}
+.choose button:last-child{background:#d67d48;border-color:#b45e32}
+.choose strong{display:block;font-size:22px}
+.choose small{display:block;font-size:12px;margin-top:6px;line-height:1.35}
+.cover-card a{color:#1c6957;text-decoration:underline}
+.replay{width:100%;min-height:52px;margin-top:8px;border:0;background:#248669;color:white;border-radius:13px;font-weight:900}
+button:focus-visible,a:focus-visible{outline:4px solid #ffad35;outline-offset:3px}
+@media(max-width:360px){.page{padding-left:7px;padding-right:7px}.console{padding:6px}.frame{padding:4px;border-width:3px}.status{gap:3px}.stat small{font-size:8px}}
+@media(max-height:640px) and (orientation:landscape){.page{max-width:100%;display:grid;grid-template-columns:minmax(0,60%) minmax(0,40%);grid-template-rows:45px auto auto;gap:6px}.top{grid-column:1/-1}.console{grid-area:2/1;max-width:620px}.controls{grid-area:2/2;height:100%;min-height:170px;margin:0}.toolbar{grid-area:3/1;margin:0}.message{grid-area:3/2}.notes{display:none}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="top">
+ <div class="brand"><strong>💣 BOMB SWEEPER</strong><small>LCD · TUNNELS & ÉNIGMES</small></div>
+ <a class="home" href="./" aria-label="Retour au choix des deux jeux">⌂ Deux jeux</a>
+</header>
+<section class="console" aria-label="Console Bomb Sweeper">
+ <div class="status">
+  <div class="stat"><small>MODE / TOUR</small><b id="stage">A · 1/10</b></div>
+  <div class="stat"><small>CHRONO</small><b id="time">80 s</b></div>
+  <div class="stat"><small>POINTS</small><b id="score">0000</b></div>
+  <div class="stat"><small>ERREURS</small><b class="danger" id="lives">0 / 3</b></div>
+ </div>
+ <div class="screens">
+  <div class="frame"><canvas id="city" width="660" height="142" role="img" aria-label="Écran supérieur : une ville, Dynamite Jack et le chronomètre"></canvas></div>
+  <div class="screen-title">JOHN SOLVER · RECHERCHE LES BOMBES</div>
+  <div class="frame"><canvas id="maze" width="660" height="430" role="img" aria-label="Écran inférieur : labyrinthe souterrain avec des murs à pousser et des bombes à désamorcer"></canvas></div>
+ </div>
+</section>
+<section class="toolbar" aria-label="Options du jeu">
+ <button type="button" class="tool" id="undo" aria-label="Annuler le dernier déplacement">↶ Annuler</button>
+ <button type="button" class="tool" id="hint" aria-label="Voir un indice, coûte six secondes">💡 Indice −6 s</button>
+ <button type="button" class="tool" id="pause" aria-label="Mettre le jeu en pause">Ⅱ Pause</button>
+ <button type="button" class="tool" id="sound" aria-label="Activer le son">♪ Son</button>
+</section>
+<nav class="controls" aria-label="Grandes commandes de déplacement">
+ <button class="pad" type="button" data-dir="up" aria-label="Monter">▲</button>
+ <button class="pad" type="button" data-dir="left" aria-label="Aller à gauche">◀</button>
+ <button class="pad" type="button" data-dir="down" aria-label="Descendre">▼</button>
+ <button class="pad" type="button" data-dir="right" aria-label="Aller à droite">▶</button>
+</nav>
+<p class="message" id="message" aria-live="polite">Choisis GAME A ou GAME B pour commencer.</p>
+<details class="notes"><summary>📖 Comment jouer et ce qui vient du jeu de 1987</summary>
+<p>Tu incarnes un démineur dans des égouts. Déplace-toi avec les 4 flèches ; pousse un mur mobile jaune si la case derrière est libre. Atteins <b>une bombe</b> avant la fin du temps : toutes les bombes du niveau sont désamorcées. Le temps restant devient des points. Après trois explosions, la partie se termine.</p>
+<p>GAME A propose 10 labyrinthes fixes puis une traversée bonus à défilement horizontal ; GAME B propose 15 labyrinthes variables et un chrono plus court. Cette version utilise nos propres labyrinthes, illustrations, vitesses et durées : elle reprend les <b>principes de jeu</b>, mais ne reproduit pas la ROM ou les graphismes Nintendo à l'identique. Les erreurs ne sont pas annulées à 300 points.</p>
+<p>Références : <a href="https://itizso.itch.io/nintendo-bomb-sweeper" target="_blank" rel="noopener noreferrer">règles détaillées RetroFab</a> et <a href="https://nintendo-museum.fr/bomb-sweeper-1987-multiscreen/" target="_blank" rel="noopener noreferrer">Nintendo Museum</a>. <a href="https://itizso.itch.io/nintendo-zelda" target="_blank" rel="noopener noreferrer">Jouer au Zelda Game & Watch en ligne</a>.</p>
+</details>
+</main>
+<section class="cover" id="cover" aria-label="Choisir une partie">
+ <div class="cover-card">
+  <span class="sticker">DOUBLE ÉCRAN · INSPIRÉ DE 1987</span>
+  <h1 id="cover-title">DÉSAMORCE<br>LA BOMBE ! 💣</h1>
+  <p id="cover-desc">Dans les tunnels de la ville, retrouve une bombe avant qu'elle explose. Pousse les murs mobiles, contourne les obstacles et surveille le chronomètre.</p>
+  <div class="choose">
+   <button type="button" data-mode="A"><strong>GAME A</strong><small>10 labyrinthes puis un bonus à défilement.</small></button>
+   <button type="button" data-mode="B"><strong>GAME B</strong><small>15 labyrinthes variables. Temps plus serré !</small></button>
+  </div>
+  <p style="font-size:12px;color:#547267">Jeu original inspiré des règles du Game & Watch, avec de grosses touches pour téléphone.</p>
+  <a href="./">← Revenir aux deux jeux</a>
+ </div>
+</section>
+<script>
+(()=>{
+"use strict";
+const city=document.getElementById("city"),screen=document.getElementById("maze"),
+ cityCtx=city.getContext("2d"),c=screen.getContext("2d"),
+ labelStage=document.getElementById("stage"),labelTime=document.getElementById("time"),
+ labelScore=document.getElementById("score"),labelLives=document.getElementById("lives"),
+ message=document.getElementById("message"),cover=document.getElementById("cover"),
+ coverTitle=document.getElementById("cover-title"),coverDesc=document.getElementById("cover-desc"),
+ undoBtn=document.getElementById("undo"),pauseBtn=document.getElementById("pause"),
+ hintBtn=document.getElementById("hint"),soundBtn=document.getElementById("sound");
+const DIR=[{dx:0,dy:-1,name:"haut",arrow:"▲"},{dx:1,dy:0,name:"droite",arrow:"▶"},
+ {dx:0,dy:1,name:"bas",arrow:"▼"},{dx:-1,dy:0,name:"gauche",arrow:"◀"}];
+const MAP_W=11,MAP_H=9,TILE=44,OX=88,OY=17;
+let game=null,last=performance.now(),held=null,pressedAt=0,touchPointers=new Map(),audio=null,sound=false;
+const pos=(x,y,w)=>y*w+x;
+const xy=(idx,w)=>[idx%w,Math.floor(idx/w)];
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function rand(seed){let n=seed>>>0;return ()=>{n=(1664525*n+1013904223)>>>0;return n/4294967296}}
+function msg(s){message.textContent=s}
+function beep(f=480,d=.055){if(!sound)return;try{
+ audio ||= new (window.AudioContext||window.webkitAudioContext)();
+ if(audio.state==="suspended")audio.resume();
+ const o=audio.createOscillator(),v=audio.createGain();o.type="square";o.frequency.value=f;
+ v.gain.setValueAtTime(.035,audio.currentTime);v.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);
+ o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+d);
+}catch{}}
+const st=(p,k)=>p.has(k);
+function key(board,p,blocks){return p+"|"+blocks.join(",")}
+function solver(board,maxStates=24000){
+ const w=board.w,h=board.h,wall=board.wall,goals=new Set(board.bombs.length?board.bombs:[board.exit]);
+ const beginning={p:board.start,boxes:[...board.boxes].sort((a,b)=>a-b),path:""};
+ const seen=new Set([key(board,beginning.p,beginning.boxes)]),queue=[beginning];
+ for(let i=0;i<queue.length && queue.length<maxStates;i++){
+  const q=queue[i];
+  if(goals.has(q.p))return q.path;
+  for(let d=0;d<4;d++){
+   const [x,y]=xy(q.p,w),nx=x+DIR[d].dx,ny=y+DIR[d].dy;
+   if(nx<0||nx>=w||ny<0||ny>=h)continue;
+   const to=pos(nx,ny,w);if(st(wall,to))continue;
+   let boxes=q.boxes;
+   if(boxes.includes(to)){
+    const bx=nx+DIR[d].dx,by=ny+DIR[d].dy;
+    if(bx<0||bx>=w||by<0||by>=h)continue;
+    const behind=pos(bx,by,w);
+    if(st(wall,behind)||boxes.includes(behind)||goals.has(behind))continue;
+    boxes=boxes.map(v=>v===to?behind:v).sort((a,b)=>a-b);
+   }
+   const id=key(board,to,boxes);if(seen.has(id))continue;
+   seen.add(id);queue.push({p:to,boxes,path:q.path+String(d)});
+  }
+ }
+ return null;
+}
+function boardMake(stage,mode,round,seed){
+ const w=MAP_W,h=MAP_H,rng=rand(seed);
+ const wall=new Set,boxes=[],bombs=[];
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||y===0||x===w-1||y===h-1)wall.add(pos(x,y,w));
+ const gate1=1+Math.floor(rng()*7),gate2=1+Math.floor(rng()*7);
+ for(let y=1;y<h-1;y++){
+  if(y!==gate1)wall.add(pos(3,y,w));
+  if(y!==gate2)wall.add(pos(7,y,w));
+ }
+ if(stage>=2||mode==="B")boxes.push(pos(3,gate1,w));
+ if(stage>=4||mode==="B"&&stage>=3)boxes.push(pos(7,gate2,w));
+ const start=pos(1,1,w);
+ bombs.push(pos(9,7,w));
+ if(stage>=6&&stage%3===0)bombs.push(pos(9,2,w));
+ const excluded=new Set([start,...bombs]);
+ for(const x of [2,4])excluded.add(pos(x,gate1,w));
+ for(const x of [6,8])excluded.add(pos(x,gate2,w));
+ const movableExtras=stage>=7?1:0;
+ for(let j=0;j<movableExtras;j++){
+  for(let t=0;t<30;t++){
+   const x=4+Math.floor(rng()*3),y=1+Math.floor(rng()*7),v=pos(x,y,w);
+   if(!wall.has(v)&&!boxes.includes(v)&&!excluded.has(v)){boxes.push(v);break}
+  }
+ }
+ // Petites impasses latérales, en évitant les portes et les bombes.
+ const rocks=Math.min(5,Math.floor((stage-1)/3)+(mode==="B"?1:0));
+ for(let i=0;i<rocks;i++){
+  for(let t=0;t<20;t++){
+   const x=(rng()>.4?4:8)+Math.floor(rng()*(rng()>.55?2:2)),y=1+Math.floor(rng()*7),v=pos(x,y,w);
+   if(!wall.has(v)&&!boxes.includes(v)&&!excluded.has(v)){wall.add(v);break}
+  }
+ }
+ return {w,h,wall,boxes,bombs,start,exit:null,type:"maze"};
+}
+function simpleBoard(stage,mode,round,seed){
+ const b=boardMake(stage,mode,round,seed);
+ b.wall=new Set(b.wall);
+ // No potentially obstructive random wall extras in the fallback.
+ for(let y=1;y<8;y++)for(const x of [4,5,8,9]){
+  const p=pos(x,y,11);if(b.wall.has(p))b.wall.delete(p);
+ }
+ for(let y=1;y<8;y++){
+  // Restore fixed vertical partitions only.
+  for(const x of [3,7])if(!b.wall.has(pos(x,y,11))&&!b.boxes.includes(pos(x,y,11)) && stage===-1)b.wall.add(pos(x,y,11));
+ }
+ b.boxes=b.boxes.filter(v=>{const [x]=xy(v,11);return x===3||x===7});
+ return b;
+}
+function newBoard(stage,mode,round){
+ const fixedSeed=mode==="A"?(772133+stage*917):Math.floor(Math.random()*2147483647);
+ let selected=null;
+ for(let attempt=0;attempt<36;attempt++){
+  const board=boardMake(stage,mode,round,fixedSeed+attempt*863);
+  if(solver(board,14000)!==null){selected=board;break}
+ }
+ if(!selected){
+  // Guaranteed open layout if an unfortunate obstacle combination cannot be solved.
+  selected=simpleBoard(stage,mode,round,fixedSeed+50);
+  if(solver(selected,24000)===null){
+   const b=selected;
+   for(let y=1;y<8;y++)for(let x=1;x<10;x++)b.wall.delete(pos(x,y,b.w));
+   b.boxes=[];selected=b;
+  }
+ }
+ return selected;
+}
+function makeBonus(){
+ const w=26,h=9,wall=new Set(),boxes=[],start=pos(1,1,w),exit=pos(24,7,w);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
+ const pillars=[5,10,15,20],gates=[2,6,2,6];
+ for(let a=0;a<pillars.length;a++){
+  const x=pillars[a],open=gates[a];
+  for(let y=1;y<8;y++)if(y!==open)wall.add(pos(x,y,w));
+ }
+ boxes.push(pos(5,2,w));
+ return {w,h,wall,boxes,bombs:[],start,exit,type:"bonus"};
+}
+function cloneBoard(b){return {...b,wall:new Set(b.wall),boxes:[...b.boxes],bombs:[...b.bombs]}}
+function gameStart(mode){
+ game={mode,round:1,stage:1,score:0,misses:0,paused:false,over:false,
+  board:null,initial:null,player:0,time:0,history:[],hint:null,transition:null,transitionRemaining:0,
+  winning:false,volume:0};
+ cover.hidden=true;
+ loadStage(false);
+}
+function loadStage(keepCurrent=false){
+ const g=game;
+ g.board=keepCurrent?cloneBoard(g.initial):g.mode==="A"&&g.stage===11?makeBonus():newBoard(g.stage,g.mode,g.round);
+ g.initial=cloneBoard(g.board);g.player=g.board.start;g.history=[];g.hint=null;
+ g.time=g.board.type==="bonus"?78:Math.max(g.mode==="B"?32:42,
+  (g.mode==="B"?69:100)-(g.stage-1)*(g.mode==="B"?2.5:2.6)-(g.round-1)*4);
+ g.paused=false;g.transition=null;g.transitionRemaining=0;g.winning=false;
+ updateHud();msg(g.board.type==="bonus"?"BONUS : rejoins la sortie sur la droite !":"Trouve une bombe et pousse les murs mobiles.");
+}
+function updateHud(){
+ if(!game)return;
+ const g=game,cap=g.mode==="A"?10:15;
+ labelStage.textContent=g.board?.type==="bonus"?"A · BONUS":g.mode+" · "+g.stage+"/"+cap;
+ labelTime.textContent=Math.ceil(Math.max(0,g.time))+" s";
+ labelTime.style.color=g.time<13?"#b93732":"";
+ labelScore.textContent=String(g.score).padStart(4,"0");
+ labelLives.textContent=g.misses+" / 3";
+ undoBtn.disabled=!g.history.length||g.paused||!!g.transition;
+ hintBtn.disabled=!!g.transition||g.paused||g.over;
+ pauseBtn.textContent=g.paused?"▶ Reprendre":"Ⅱ Pause";
+}
+function gameOver(){
+ game.over=true;game.transition=null;game.paused=true;
+ coverTitle.innerHTML="FIN DE PARTIE 💥";
+ coverDesc.textContent="Score : "+game.score+" points. Trois bombes ont explosé. Recommence en GAME A ou GAME B.";
+ cover.hidden=false;
+ msg("Fin de partie · score "+game.score);
+}
+function later(outcome){
+ const g=game;
+ g.transition=outcome;g.transitionRemaining=1.15;
+ if(outcome==="win"){const earned=Math.ceil(g.time);g.score+=earned;msg("BOMBE DÉSAMORCÉE ! +"+earned+" points");beep(790,.15)}
+ else{g.misses++;msg("BOUM ! "+g.misses+" erreur(s) sur 3");beep(140,.2)}
+ updateHud();
+}
+function advance(){
+ const g=game;if(g.transition==="miss"){
+  if(g.misses>=3){gameOver();return}loadStage(true);return;
+ }
+ if(g.board.type==="bonus"){g.round++;g.stage=1}
+ else{
+  g.stage++;
+  if(g.mode==="B"&&g.stage>15){g.round++;g.stage=1}
+ }
+ loadStage(false);
+}
+function walk(dx,dy){
+ const g=game;if(!g||g.paused||g.over||g.transition)return false;
+ const b=g.board,[x,y]=xy(g.player,b.w),nx=x+dx,ny=y+dy;
+ if(nx<0||nx>=b.w||ny<0||ny>=b.h){beep(160,.035);return false}
+ const n=pos(nx,ny,b.w);if(b.wall.has(n)){beep(155,.03);return false}
+ let pushed=false;
+ const boxIndex=b.boxes.indexOf(n);
+ if(boxIndex>=0){
+  const bx=nx+dx,by=ny+dy;
+  if(bx<0||bx>=b.w||by<0||by>=b.h)return false;
+  const behind=pos(bx,by,b.w);
+  if(b.wall.has(behind)||b.boxes.includes(behind)||b.bombs.includes(behind)||behind===b.exit){beep(170,.07);return false}
+  g.history.push({player:g.player,boxes:[...b.boxes]});
+  b.boxes[boxIndex]=behind;pushed=true;beep(300,.08);
+ }else{
+  g.history.push({player:g.player,boxes:null});beep(450,.024);
+ }
+ if(g.history.length>120)g.history.shift();
+ g.player=n;g.hint=null;
+ if(b.bombs.includes(n)||(b.exit!==null&&n===b.exit)){later("win")}
+ else msg(pushed?"Tu as poussé un mur. Continue !":"");
+ updateHud();
+ return true;
+}
+function undo(){
+ const g=game;if(!g||g.paused||g.transition||!g.history.length)return;
+ const h=g.history.pop();g.player=h.player;if(h.boxes)g.board.boxes=h.boxes;g.hint=null;
+ msg("Déplacement annulé (le chronomètre continue).");updateHud();beep(360,.04);
+}
+function hint(){
+ const g=game;if(!g||g.paused||g.over||g.transition||g.time<=8)return;
+ const b={...g.board,start:g.player};
+ const path=solver(b,30000);
+ if(!path||path.length===0){msg("Aucun indice sûr. Essaie Annuler ou recommence.");return}
+ const d=Number(path[0]),where=DIR[d],newX=xy(g.player,b.w)[0]+where.dx,newY=xy(g.player,b.w)[1]+where.dy;
+ g.hint={target:pos(newX,newY,b.w),seconds:3.5};
+ g.time=Math.max(0,g.time-6);
+ const inBox=b.boxes.includes(g.hint.target);
+ msg("Indice : "+where.arrow+" "+where.name+(inBox?" — pousse le mur !":""));
+ updateHud();
+}
+function pauseToggle(){
+ if(!game||game.over||game.transition)return;
+ game.paused=!game.paused;
+ msg(game.paused?"Partie en pause.":"Partie reprise.");
+ updateHud();
+}
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>gameStart(b.dataset.mode)));
+undoBtn.addEventListener("click",undo);
+hintBtn.addEventListener("click",hint);
+pauseBtn.addEventListener("click",pauseToggle);
+soundBtn.addEventListener("click",()=>{
+ sound=!sound;soundBtn.textContent=sound?"♫ Son ON":"♪ Son";
+ soundBtn.setAttribute("aria-label",sound?"Couper le son":"Activer le son");
+ beep(720,.07);
+});
+const controlMap={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
+const pads=[...document.querySelectorAll(".pad")];
+function releaseButtons(){touchPointers.clear();held=null;pads.forEach(p=>p.classList.remove("down"))}
+function dirKey(name){return {up:0,right:1,down:2,left:3}[name]}
+function press(id){
+ if(!game)return;
+ held=id;pressedAt=performance.now();const d=DIR[id];
+ walk(d.dx,d.dy);
+ pads.forEach(b=>b.classList.toggle("down",dirKey(b.dataset.dir)===id));
+}
+for(const pad of pads){
+ pad.addEventListener("pointerdown",e=>{e.preventDefault();pad.setPointerCapture(e.pointerId);touchPointers.set(e.pointerId,dirKey(pad.dataset.dir));press(dirKey(pad.dataset.dir))});
+ const up=e=>{touchPointers.delete(e.pointerId);if(!touchPointers.size)releaseButtons()};
+ pad.addEventListener("pointerup",up);pad.addEventListener("pointercancel",up);pad.addEventListener("lostpointercapture",up);
+ pad.addEventListener("contextmenu",e=>e.preventDefault());
+}
+const downKeys=new Set;
+window.addEventListener("keydown",e=>{
+ if(e.code==="Escape"&&game){pauseToggle();return}
+ if(e.code==="Backspace"&&game){e.preventDefault();undo();return}
+ if(!(e.code in controlMap))return;
+ e.preventDefault();
+ if(downKeys.has(e.code))return;downKeys.add(e.code);press(controlMap[e.code]);
+});
+window.addEventListener("keyup",e=>{downKeys.delete(e.code);if(!downKeys.size)releaseButtons()});
+window.addEventListener("blur",()=>{releaseButtons();downKeys.clear();if(game&&!game.over){game.paused=true;updateHud()}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&game&&!game.over){game.paused=true;releaseButtons();updateHud()}});
+function rect(ctx,x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
+function cityDraw(t){
+ const x=cityCtx;rect(x,0,0,660,142,"#e9efdc");
+ rect(x,0,105,660,37,"#d6e4d2");
+ // L'écran supérieur sert surtout à montrer la ville et le saboteur.
+ const buildings=[[18,54,89],[115,18,126],[205,65,88],[300,34,108],[396,57,85],[492,29,113],[580,48,94]];
+ for(const [bx,by,bh] of buildings){
+  rect(x,bx,by,75,bh,"#a3b9ab");rect(x,bx+4,by+4,67,bh-9,"#c0d3c0");
+  for(let yy=by+12;yy<by+bh-9;yy+=17)for(let xx=bx+10;xx<bx+62;xx+=21)rect(x,xx,yy,11,8,"#658f7e");
+ }
+ rect(x,0,121,660,9,"#4c7b65");
+ // Dynamite Jack, figurine géométrique d'origine indépendante.
+ const villainX=game?(game.transition==="miss"?118:81+Math.floor(t/1200)%3*4):92;
+ rect(x,villainX,93,17,23,"#32534a");rect(x,villainX+3,85,11,9,"#d67e5a");
+ rect(x,villainX+1,81,17,5,"#204b42");rect(x,villainX+3,116,5,8,"#32534a");
+ rect(x,villainX+12,116,5,8,"#32534a");
+ rect(x,villainX+18,106,13,5,"#de8064");
+ // Headline, deliberately bright and high-contrast.
+ rect(x,389,10,254,62,"#fff9e9");
+ x.strokeStyle="#78a293";x.lineWidth=3;x.strokeRect(389,10,254,62);
+ x.fillStyle="#2d6054";x.font="bold 16px monospace";x.fillText("DYNAMITE JACK",404,30);
+ x.font="bold 29px monospace";const remaining=game?Math.ceil(Math.max(0,game.time)):100;x.fillText(String(Math.floor(remaining/60)).padStart(2,"0")+":"+String(remaining%60).padStart(2,"0"),420,61);
+ x.font="bold 12px monospace";x.fillText("VILLE / ALERTE",26,21);
+ x.font="bold 13px monospace";x.fillText("ENTRÉE DES ÉGOUTS",17,136);
+}
+function drawFigure(c,x,y,kind,size){
+ // Sprites LCD originaux, sans image du jeu commercial.
+ const scale=size/8;
+ if(kind==="player"){
+  rect(c,x+scale*2,y,scale*4,scale*2,"#264c41");
+  rect(c,x+scale*1,y+scale*2,scale*6,scale*1,"#2b6456");
+  rect(c,x+scale*2,y+scale*3,scale*4,scale*2,"#e8aa70");
+  rect(c,x+scale*1,y+scale*5,scale*6,scale*2,"#3c9679");
+  rect(c,x+scale*1,y+scale*7,scale*2,scale,"#285b4b");
+  rect(c,x+scale*5,y+scale*7,scale*2,scale,"#285b4b");
+ }else if(kind==="bomb"){
+  rect(c,x+scale*3,y,scale*2,scale*2,"#a44f34");
+  rect(c,x+scale*4,y-scale,scale*1,scale,"#efb95b");
+  rect(c,x+scale*2,y+scale*2,scale*4,scale*1,"#263f3c");
+  rect(c,x+scale*1,y+scale*3,scale*6,scale*3,"#263f3c");
+  rect(c,x+scale*2,y+scale*6,scale*4,scale*1,"#263f3c");
+  rect(c,x+scale*3,y+scale*3,scale*1,scale*1,"#fff5d1");
+ }
+}
+function mazeDraw(){
+ const g=game,b=g?.board;
+ const x=c;rect(x,0,0,660,430,"#e6efd9");
+ if(!b){x.fillStyle="#275f51";x.textAlign="center";x.font="bold 30px system-ui";x.fillText("CHOISIS TON MODE !",330,205);return}
+ const worldX=xy(g.player,b.w)[0],camera=b.w>MAP_W?clamp(worldX-5,0,b.w-MAP_W):0;
+ const boxSet=new Set(b.boxes),bombSet=new Set(b.bombs);
+ // Grille LCD légère ; la topologie ne change pas par animation continue.
+ for(let y=0;y<MAP_H;y++)for(let xx=0;xx<MAP_W;xx++){
+  const wx=xx+camera,id=pos(wx,y,b.w),px=OX+xx*TILE,py=OY+y*TILE;
+  rect(x,px+1,py+1,TILE-2,TILE-2,(xx+y)%2===0?"#f1f6e0":"#ebf3dc");
+  if(b.wall.has(id)){
+   rect(x,px+2,py+2,TILE-4,TILE-4,"#557a68");
+   rect(x,px+5,py+5,TILE-10,TILE-10,"#779989");
+   rect(x,px+5,py+22,TILE-10,3,"#4c7363");
+   rect(x,px+21,py+6,3,16,"#4c7363");
+   rect(x,px+12,py+27,3,12,"#4c7363");
+  }else if(boxSet.has(id)){
+   rect(x,px+4,py+4,TILE-8,TILE-8,"#d49a5c");
+   rect(x,px+9,py+9,TILE-18,TILE-18,"#f8d79b");
+   rect(x,px+12,py+12,4,4,"#9b693a");rect(x,px+TILE-16,py+TILE-16,4,4,"#9b693a");
+   rect(x,px+11,py+TILE/2,TILE-22,3,"#b47b45");
+  }else if(bombSet.has(id)){
+   rect(x,px+4,py+5,TILE-8,TILE-9,"#f9ddcf");
+   drawFigure(x,px+7,py+6,"bomb",30);
+  }else if(b.exit===id){
+   rect(x,px+5,py+4,TILE-10,TILE-8,"#f7d189");
+   rect(x,px+15,py+8,16,TILE-17,"#5da681");
+   rect(x,px+27,py+22,4,4,"#fff4bf");
+  }
+  if(g.hint?.target===id){
+   x.strokeStyle="#e57c42";x.lineWidth=4;x.strokeRect(px+4,py+4,TILE-8,TILE-8);
+  }
+ }
+ const [worldPx,worldPy]=xy(g.player,b.w),pxIndex=worldPx-camera;
+ if(pxIndex>=0&&pxIndex<MAP_W)drawFigure(x,OX+pxIndex*TILE+7,OY+worldPy*TILE+5,"player",32);
+ x.fillStyle="#365d51";x.font="bold 13px monospace";x.textAlign="left";
+ x.fillText(b.type==="bonus"?"BONUS · SORTIE →": "MURS JAUNES : POUSSER / BOMBES : TOUCHER",25,13);
+ x.fillText("ÉCRAN LCD · LABYRINTHE "+String(g.stage).padStart(2,"0"),150,426);
+ if(g.paused||g.transition){
+  x.fillStyle="#244c43d9";x.fillRect(0,0,660,430);
+  x.fillStyle="#fff9e9";x.textAlign="center";x.font="bold 42px system-ui";
+  x.fillText(g.paused?"PAUSE":g.transition==="win"?"DÉSAMORCÉ !":"BOUM !",330,205);
+  x.font="21px system-ui";x.fillText(g.transition==="win"?"Bien joué !":g.transition==="miss"?"Nouvel essai...":"▶ pour reprendre",330,239);
+ }
+}
+function frame(t){
+ const dt=Math.min(.08,Math.max(0,(t-last)/1000));last=t;
+ if(game&&!game.paused&&!game.over){
+  if(game.transition){
+   game.transitionRemaining-=dt;
+   if(game.transitionRemaining<=0)advance();
+  }else{
+   game.time-=dt;
+   if(game.time<=0){game.time=0;later("miss")}
+   if(game.hint){game.hint.seconds-=dt;if(game.hint.seconds<=0)game.hint=null}
+   if(held!==null&&t-pressedAt>=190){pressedAt=t;walk(DIR[held].dx,DIR[held].dy)}
+  }
+ }
+ cityDraw(t);mazeDraw();updateHud();requestAnimationFrame(frame);
+}
+cityDraw(0);mazeDraw();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
