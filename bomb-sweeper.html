@@ -79,7 +79,7 @@ button:focus-visible,a:focus-visible{outline:4px solid #ffad35;outline-offset:3p
  </div>
  <div class="screens">
   <div class="frame"><canvas id="city" width="660" height="142" role="img" aria-label="Écran supérieur : une ville, Dynamite Jack et le chronomètre"></canvas></div>
-  <div class="screen-title">JOHN SOLVER · RECHERCHE LES BOMBES</div>
+  <div class="screen-title">JOHN SOLVER · PARCOURS RECONSTRUITS, PAS LES CARTES NINTENDO</div>
   <div class="frame"><canvas id="maze" width="660" height="430" role="img" aria-label="Écran inférieur : labyrinthe souterrain avec des murs à pousser et des bombes à désamorcer"></canvas></div>
  </div>
 </section>
@@ -97,8 +97,8 @@ button:focus-visible,a:focus-visible{outline:4px solid #ffad35;outline-offset:3p
 </nav>
 <p class="message" id="message" aria-live="polite">Choisis GAME A ou GAME B pour commencer.</p>
 <details class="notes"><summary>📖 Comment jouer et ce qui vient du jeu de 1987</summary>
-<p>Tu incarnes un démineur dans des égouts. Déplace-toi avec les 4 flèches ; pousse un mur mobile jaune si la case derrière est libre. Atteins <b>une bombe</b> avant la fin du temps : toutes les bombes du niveau sont désamorcées. Le temps restant devient des points. Après trois explosions, la partie se termine.</p>
-<p>GAME A propose 10 labyrinthes fixes puis une traversée bonus à défilement horizontal ; GAME B propose 15 labyrinthes variables et un chrono plus court. Cette version utilise nos propres labyrinthes, illustrations, vitesses et durées : elle reprend les <b>principes de jeu</b>, mais ne reproduit pas la ROM ou les graphismes Nintendo à l'identique. Les erreurs ne sont pas annulées à 300 points.</p>
+<p>Tu incarnes un démineur dans des égouts. Déplace-toi avec les 4 flèches ; pousse une paroi mobile en forme de trait si la case derrière est libre. Atteins <b>une bombe</b> avant la fin du temps : toutes les bombes du niveau sont désamorcées. Le temps restant devient des points. Après trois explosions, la partie se termine.</p>
+<p>GAME A : 80 labyrinthes, 45 plans distincts et 35 répétitions, avec un bonus défilant toutes les dix étapes. GAME B : 15 labyrinthes par série, puis le chrono diminue de 4 secondes. Les plans de nos labyrinthes ne sont PAS les tracés Nintendo : nos graphismes et nos labyrinthes sont des créations originales, ainsi que certaines durées : elle reprend les <b>principes de jeu</b>, mais ne reproduit pas la ROM ou les graphismes Nintendo à l'identique. Les erreurs ne sont pas annulées à 300 points.</p>
 <p>Références : <a href="https://itizso.itch.io/nintendo-bomb-sweeper" target="_blank" rel="noopener noreferrer">règles détaillées RetroFab</a> et <a href="https://nintendo-museum.fr/bomb-sweeper-1987-multiscreen/" target="_blank" rel="noopener noreferrer">Nintendo Museum</a>. <a href="https://itizso.itch.io/nintendo-zelda" target="_blank" rel="noopener noreferrer">Jouer au Zelda Game & Watch en ligne</a>.</p>
 </details>
 </main>
@@ -108,10 +108,10 @@ button:focus-visible,a:focus-visible{outline:4px solid #ffad35;outline-offset:3p
   <h1 id="cover-title">DÉSAMORCE<br>LA BOMBE ! 💣</h1>
   <p id="cover-desc">Dans les tunnels de la ville, retrouve une bombe avant qu'elle explose. Pousse les murs mobiles, contourne les obstacles et surveille le chronomètre.</p>
   <div class="choose">
-   <button type="button" data-mode="A"><strong>GAME A</strong><small>10 labyrinthes puis un bonus à défilement.</small></button>
-   <button type="button" data-mode="B"><strong>GAME B</strong><small>15 labyrinthes variables. Temps plus serré !</small></button>
+   <button type="button" data-mode="A"><strong>GAME A</strong><small>80 étapes, 45 puzzles distincts et 8 bonus.</small></button>
+   <button type="button" data-mode="B"><strong>GAME B</strong><small>15 puzzles par série ; chrono accéléré.</small></button>
   </div>
-  <p style="font-size:12px;color:#547267">Jeu original inspiré des règles du Game & Watch, avec de grosses touches pour téléphone.</p>
+  <p style="font-size:12px;color:#547267">Recréation des mécanismes et de la progression : les cartes des niveaux ne sont pas encore les tracés originaux.</p>
   <a href="./">← Revenir aux deux jeux</a>
  </div>
 </section>
@@ -128,7 +128,7 @@ const city=document.getElementById("city"),screen=document.getElementById("maze"
  hintBtn=document.getElementById("hint"),soundBtn=document.getElementById("sound");
 const DIR=[{dx:0,dy:-1,name:"haut",arrow:"▲"},{dx:1,dy:0,name:"droite",arrow:"▶"},
  {dx:0,dy:1,name:"bas",arrow:"▼"},{dx:-1,dy:0,name:"gauche",arrow:"◀"}];
-const MAP_W=11,MAP_H=9,TILE=44,OX=88,OY=17;
+const MAP_W=9,MAP_H=7,TILE=54,OX=87,OY=25;
 let game=null,last=performance.now(),held=null,pressedAt=0,touchPointers=new Map(),audio=null,sound=false;
 const pos=(x,y,w)=>y*w+x;
 const xy=(idx,w)=>[idx%w,Math.floor(idx/w)];
@@ -169,103 +169,87 @@ function solver(board,maxStates=24000){
  }
  return null;
 }
-function boardMake(stage,mode,round,seed){
- const w=MAP_W,h=MAP_H,rng=rand(seed);
- const wall=new Set,boxes=[],bombs=[];
- for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||y===0||x===w-1||y===h-1)wall.add(pos(x,y,w));
- const gate1=1+Math.floor(rng()*7),gate2=1+Math.floor(rng()*7);
- for(let y=1;y<h-1;y++){
-  if(y!==gate1)wall.add(pos(3,y,w));
-  if(y!==gate2)wall.add(pos(7,y,w));
+
+function boardMake(pattern,mode,round,seed){
+ const w=MAP_W,h=MAP_H,rng=rand(seed),wall=new Set(),boxes=[],orient={},bombs=[];
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
+ const starts=[[1,1],[1,5],[3,1],[2,4],[6,1],[4,5]];
+ const ends=[[7,5],[7,1],[6,5],[7,4],[1,1],[2,1]];
+ const [sx,sy]=pattern<=2?[1,1]:starts[(pattern*7)%starts.length];
+ const [tx,ty]=pattern<=2?[7,5]:ends[(pattern*11+2)%ends.length];
+ const start=pos(sx,sy,w);
+ let gx=tx,gy=ty;
+ if(Math.abs(sx-gx)+Math.abs(sy-gy)<7){
+  gx=sx<=4?7:1;gy=sy<=3?5:1;
  }
- if(stage>=2||mode==="B")boxes.push(pos(3,gate1,w));
- if(stage>=4||mode==="B"&&stage>=3)boxes.push(pos(7,gate2,w));
- const start=pos(1,1,w);
- bombs.push(pos(9,7,w));
- if(stage>=6&&stage%3===0)bombs.push(pos(9,2,w));
- const excluded=new Set([start,...bombs]);
- for(const x of [2,4])excluded.add(pos(x,gate1,w));
- for(const x of [6,8])excluded.add(pos(x,gate2,w));
- const movableExtras=stage>=7?1:0;
- for(let j=0;j<movableExtras;j++){
-  for(let t=0;t<30;t++){
-   const x=4+Math.floor(rng()*3),y=1+Math.floor(rng()*7),v=pos(x,y,w);
-   if(!wall.has(v)&&!boxes.includes(v)&&!excluded.has(v)){boxes.push(v);break}
-  }
+ bombs.push(pos(gx,gy,w));
+ if(start===bombs[0])bombs[0]=pos(7,5,w);
+ if(pattern>8&&pattern%4===0){const second=pos(7,1,w);if(second!==start&&!bombs.includes(second))bombs.push(second)}
+ const reserved=new Set([start,...bombs,pos(2,1,w),pos(w-2,h-3,w)]);
+ function add(x,y,o){
+  const p=pos(x,y,w);
+  if(x>0&&x<w-1&&y>0&&y<h-1&&!reserved.has(p)&&!boxes.includes(p)){
+   boxes.push(p);orient[p]=o;return true;
+  }return false;
  }
- // Petites impasses latérales, en évitant les portes et les bombes.
- const rocks=Math.min(5,Math.floor((stage-1)/3)+(mode==="B"?1:0));
- for(let i=0;i<rocks;i++){
-  for(let t=0;t<20;t++){
-   const x=(rng()>.4?4:8)+Math.floor(rng()*(rng()>.55?2:2)),y=1+Math.floor(rng()*7),v=pos(x,y,w);
-   if(!wall.has(v)&&!boxes.includes(v)&&!excluded.has(v)){wall.add(v);break}
-  }
+ if(pattern>=2){
+  const center=3+pattern%3;
+  for(let y=1;y<h-1;y++)add(center,y,"v");
  }
- return {w,h,wall,boxes,bombs,start,exit:null,type:"maze"};
-}
-function simpleBoard(stage,mode,round,seed){
- const b=boardMake(stage,mode,round,seed);
- b.wall=new Set(b.wall);
- // No potentially obstructive random wall extras in the fallback.
- for(let y=1;y<8;y++)for(const x of [4,5,8,9]){
-  const p=pos(x,y,11);if(b.wall.has(p))b.wall.delete(p);
+ if(pattern>=7&&pattern%3===0){
+  const horizontal=2+pattern%3;
+  for(let x=2;x<=6;x++)add(x,horizontal,"h");
  }
- for(let y=1;y<8;y++){
-  // Restore fixed vertical partitions only.
-  for(const x of [3,7])if(!b.wall.has(pos(x,y,11))&&!b.boxes.includes(pos(x,y,11)) && stage===-1)b.wall.add(pos(x,y,11));
+ const amount=pattern===1?3:Math.min(12,2+Math.floor(pattern/4)+(mode==="B"?3:0));
+ for(let j=0;j<amount;j++)for(let t=0;t<50;t++){
+  const x=1+Math.floor(rng()*(w-2)),y=1+Math.floor(rng()*(h-2));
+  if(add(x,y,rng()<.5?"h":"v"))break;
  }
- b.boxes=b.boxes.filter(v=>{const [x]=xy(v,11);return x===3||x===7});
- return b;
+ return {w,h,wall,boxes,orient,bombs,start,exit:null,type:"maze"};
 }
 function newBoard(stage,mode,round){
- const fixedSeed=mode==="A"?(772133+stage*917):Math.floor(Math.random()*2147483647);
- let selected=null;
- for(let attempt=0;attempt<36;attempt++){
-  const board=boardMake(stage,mode,round,fixedSeed+attempt*863);
-  if(solver(board,14000)!==null){selected=board;break}
+ const cycle=Math.floor((stage-1)/10),offset=(stage-1)%10;
+ const pattern=mode==="B"?stage:cycle===0?stage:
+ (offset<5?6+(cycle-1)*5+offset:11+(cycle-1)*5+offset-5);
+ const seed=mode==="B"?Math.floor(Math.random()*2000000000):554199+pattern*839;
+ for(let t=0;t<36;t++){
+  const b=boardMake(pattern,mode,round,seed+t*104729);
+  if(solver(b,16000)!==null)return b;
  }
- if(!selected){
-  // Guaranteed open layout if an unfortunate obstacle combination cannot be solved.
-  selected=simpleBoard(stage,mode,round,fixedSeed+50);
-  if(solver(selected,24000)===null){
-   const b=selected;
-   for(let y=1;y<8;y++)for(let x=1;x<10;x++)b.wall.delete(pos(x,y,b.w));
-   b.boxes=[];selected=b;
-  }
- }
- return selected;
+ const w=MAP_W,h=MAP_H,wall=new Set;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
+ return {w,h,wall,boxes:[],orient:{},bombs:[pos(7,5,w)],start:pos(1,1,w),exit:null,type:"maze"};
 }
 function makeBonus(){
- const w=26,h=9,wall=new Set(),boxes=[],start=pos(1,1,w),exit=pos(24,7,w);
+ const w=33,h=7,wall=new Set,boxes=[],orient={},start=pos(1,1,w),exit=pos(31,5,w);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
- const pillars=[5,10,15,20],gates=[2,6,2,6];
- for(let a=0;a<pillars.length;a++){
-  const x=pillars[a],open=gates[a];
-  for(let y=1;y<8;y++)if(y!==open)wall.add(pos(x,y,w));
- }
- boxes.push(pos(5,2,w));
- return {w,h,wall,boxes,bombs:[],start,exit,type:"bonus"};
+ const cols=[5,10,15,20,25,29],gaps=[2,4,2,4,2,4];
+ cols.forEach((x,i)=>{for(let y=1;y<6;y++)if(y!==gaps[i]){
+  let v=pos(x,y,w);wall.add(v);
+ }});
+ return {w,h,wall,boxes,orient,bombs:[],start,exit,type:"bonus"};
 }
-function cloneBoard(b){return {...b,wall:new Set(b.wall),boxes:[...b.boxes],bombs:[...b.bombs]}}
+function cloneBoard(b){return {...b,wall:new Set(b.wall),boxes:[...b.boxes],orient:{...b.orient},bombs:[...b.bombs]}}
+
 function gameStart(mode){
  game={mode,round:1,stage:1,score:0,misses:0,paused:false,over:false,
   board:null,initial:null,player:0,time:0,history:[],hint:null,transition:null,transitionRemaining:0,
-  winning:false,volume:0};
+  winning:false,volume:0,bonusDue:false,scrollCamera:0,scrollProgress:0};
  cover.hidden=true;
  loadStage(false);
 }
 function loadStage(keepCurrent=false){
  const g=game;
- g.board=keepCurrent?cloneBoard(g.initial):g.mode==="A"&&g.stage===11?makeBonus():newBoard(g.stage,g.mode,g.round);
+ g.board=keepCurrent?cloneBoard(g.initial):g.mode==="A"&&g.bonusDue?makeBonus():newBoard(g.stage,g.mode,g.round);
  g.initial=cloneBoard(g.board);g.player=g.board.start;g.history=[];g.hint=null;
- g.time=g.board.type==="bonus"?78:Math.max(g.mode==="B"?32:42,
-  (g.mode==="B"?69:100)-(g.stage-1)*(g.mode==="B"?2.5:2.6)-(g.round-1)*4);
+ g.time=g.board.type==="bonus"?50:(g.mode==="A"?40:Math.max(4,40-(g.round-1)*4));
+ g.scrollCamera=0;g.scrollProgress=0;
  g.paused=false;g.transition=null;g.transitionRemaining=0;g.winning=false;
  updateHud();msg(g.board.type==="bonus"?"BONUS : rejoins la sortie sur la droite !":"Trouve une bombe et pousse les murs mobiles.");
 }
 function updateHud(){
  if(!game)return;
- const g=game,cap=g.mode==="A"?10:15;
+ const g=game,cap=g.mode==="A"?80:15;
  labelStage.textContent=g.board?.type==="bonus"?"A · BONUS":g.mode+" · "+g.stage+"/"+cap;
  labelTime.textContent=Math.ceil(Math.max(0,g.time))+" s";
  labelTime.style.color=g.time<13?"#b93732":"";
@@ -293,11 +277,9 @@ function advance(){
  const g=game;if(g.transition==="miss"){
   if(g.misses>=3){gameOver();return}loadStage(true);return;
  }
- if(g.board.type==="bonus"){g.round++;g.stage=1}
- else{
-  g.stage++;
-  if(g.mode==="B"&&g.stage>15){g.round++;g.stage=1}
- }
+ if(g.board.type==="bonus"){g.bonusDue=false;g.stage++;if(g.stage>80){g.round++;g.stage=1}}
+ else if(g.mode==="A"){if(g.stage%10===0)g.bonusDue=true;else g.stage++}
+ else{g.stage++;if(g.stage>15){g.round++;g.stage=1}}
  loadStage(false);
 }
 function walk(dx,dy){
@@ -312,12 +294,13 @@ function walk(dx,dy){
   if(bx<0||bx>=b.w||by<0||by>=b.h)return false;
   const behind=pos(bx,by,b.w);
   if(b.wall.has(behind)||b.boxes.includes(behind)||b.bombs.includes(behind)||behind===b.exit){beep(170,.07);return false}
-  g.history.push({player:g.player,boxes:[...b.boxes]});
-  b.boxes[boxIndex]=behind;pushed=true;beep(300,.08);
+  g.history.push({player:g.player,boxes:[...b.boxes],orient:{...b.orient}});
+  b.boxes[boxIndex]=behind;b.orient[behind]=b.orient[n]||'v';delete b.orient[n];pushed=true;beep(300,.08);
  }else{
   g.history.push({player:g.player,boxes:null});beep(450,.024);
  }
  if(g.history.length>120)g.history.shift();
+ if(b.type==="bonus" && nx<g.scrollCamera)return false;
  g.player=n;g.hint=null;
  if(b.bombs.includes(n)||(b.exit!==null&&n===b.exit)){later("win")}
  else msg(pushed?"Tu as poussé un mur. Continue !":"");
@@ -326,7 +309,7 @@ function walk(dx,dy){
 }
 function undo(){
  const g=game;if(!g||g.paused||g.transition||!g.history.length)return;
- const h=g.history.pop();g.player=h.player;if(h.boxes)g.board.boxes=h.boxes;g.hint=null;
+ const h=g.history.pop();g.player=h.player;if(h.boxes){g.board.boxes=h.boxes;g.board.orient=h.orient||{}}g.hint=null;
  msg("Déplacement annulé (le chronomètre continue).");updateHud();beep(360,.04);
 }
 function hint(){
@@ -431,23 +414,26 @@ function mazeDraw(){
  const g=game,b=g?.board;
  const x=c;rect(x,0,0,660,430,"#e6efd9");
  if(!b){x.fillStyle="#275f51";x.textAlign="center";x.font="bold 30px system-ui";x.fillText("CHOISIS TON MODE !",330,205);return}
- const worldX=xy(g.player,b.w)[0],camera=b.w>MAP_W?clamp(worldX-5,0,b.w-MAP_W):0;
+ const worldX=xy(g.player,b.w)[0],camera=b.type==="bonus"?g.scrollCamera:0;
  const boxSet=new Set(b.boxes),bombSet=new Set(b.bombs);
  // Grille LCD légère ; la topologie ne change pas par animation continue.
  for(let y=0;y<MAP_H;y++)for(let xx=0;xx<MAP_W;xx++){
   const wx=xx+camera,id=pos(wx,y,b.w),px=OX+xx*TILE,py=OY+y*TILE;
   rect(x,px+1,py+1,TILE-2,TILE-2,(xx+y)%2===0?"#f1f6e0":"#ebf3dc");
   if(b.wall.has(id)){
-   rect(x,px+2,py+2,TILE-4,TILE-4,"#557a68");
-   rect(x,px+5,py+5,TILE-10,TILE-10,"#779989");
-   rect(x,px+5,py+22,TILE-10,3,"#4c7363");
-   rect(x,px+21,py+6,3,16,"#4c7363");
-   rect(x,px+12,py+27,3,12,"#4c7363");
+   rect(x,px+2,py+2,TILE-4,TILE-4,"#b8cbb7");
+   rect(x,px+5,py+TILE/2-3,TILE-10,6,"#749887");
   }else if(boxSet.has(id)){
-   rect(x,px+4,py+4,TILE-8,TILE-8,"#d49a5c");
-   rect(x,px+9,py+9,TILE-18,TILE-18,"#f8d79b");
-   rect(x,px+12,py+12,4,4,"#9b693a");rect(x,px+TILE-16,py+TILE-16,4,4,"#9b693a");
-   rect(x,px+11,py+TILE/2,TILE-22,3,"#b47b45");
+   const v=(b.orient[id]||"h")==="v";
+   if(v){
+    rect(x,px+TILE/2-6,py+5,12,TILE-10,"#315b51");
+    rect(x,px+TILE/2-4,py+6,8,TILE-12,"#609381");
+    for(let k=1;k<3;k++)rect(x,px+TILE/2-6,py+k*TILE/3,12,3,"#244a40");
+   }else{
+    rect(x,px+5,py+TILE/2-6,TILE-10,12,"#315b51");
+    rect(x,px+6,py+TILE/2-4,TILE-12,8,"#609381");
+    for(let k=1;k<3;k++)rect(x,px+k*TILE/3,py+TILE/2-6,3,12,"#244a40");
+   }
   }else if(bombSet.has(id)){
    rect(x,px+4,py+5,TILE-8,TILE-9,"#f9ddcf");
    drawFigure(x,px+7,py+6,"bomb",30);
@@ -463,7 +449,7 @@ function mazeDraw(){
  const [worldPx,worldPy]=xy(g.player,b.w),pxIndex=worldPx-camera;
  if(pxIndex>=0&&pxIndex<MAP_W)drawFigure(x,OX+pxIndex*TILE+7,OY+worldPy*TILE+5,"player",32);
  x.fillStyle="#365d51";x.font="bold 13px monospace";x.textAlign="left";
- x.fillText(b.type==="bonus"?"BONUS · SORTIE →": "MURS JAUNES : POUSSER / BOMBES : TOUCHER",25,13);
+ x.fillText(b.type==="bonus"?"BONUS · SORTIE →": "PAROIS FINES : POUSSER / BOMBES : TOUCHER",25,13);
  x.fillText("ÉCRAN LCD · LABYRINTHE "+String(g.stage).padStart(2,"0"),150,426);
  if(g.paused||g.transition){
   x.fillStyle="#244c43d9";x.fillRect(0,0,660,430);
@@ -479,7 +465,14 @@ function frame(t){
    game.transitionRemaining-=dt;
    if(game.transitionRemaining<=0)advance();
   }else{
-   game.time-=dt;
+   if(game.board.type==="bonus"){
+    game.scrollProgress+=dt;
+    if(game.scrollProgress>=1.2){
+     game.scrollProgress-=1.2;game.scrollCamera=Math.min(game.board.w-MAP_W,game.scrollCamera+1);
+     if(game.player%game.board.w<game.scrollCamera){later("miss")}
+    }
+   }
+   if(!game.transition)game.time-=dt;
    if(game.time<=0){game.time=0;later("miss")}
    if(game.hint){game.hint.seconds-=dt;if(game.hint.seconds<=0)game.hint=null}
    if(held!==null&&t-pressedAt>=190){pressedAt=t;walk(DIR[held].dx,DIR[held].dy)}
