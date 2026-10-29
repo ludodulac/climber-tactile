@@ -1,24 +1,26 @@
-# Climber tactile
+# Climber tactile — ascension LCD
 
-Mini-jeu d'escalade indépendant, inspiré des jeux électroniques LCD anciens, conçu pour le téléphone avec **gros boutons tactiles**.
+**Jeu d'escalade indépendant pour téléphone Android**, inspiré du fonctionnement du **Climber Crystal Screen (1986)** : des étages superposés, des plateaux de briques à percer, une ascension verticale qui défile et des ennemis.
 
-**Important :** ce jeu n'est **pas** le Climber original de Nintendo ni la simulation RetroFab. Il utilise du code, des graphismes et des règles de jeu créés indépendamment. Aucune ROM ou ressource propriétaire n'est incluse.
+Ce projet n'est **ni le jeu original de Nintendo ni RetroFab**. Il ne contient pas la ROM, les graphismes ou le code source du jeu commercial. La physique et les séquences de bonus sont encore des **adaptations simplifiées**.
 
 ## Jouer
 
-Lorsque GitHub Pages est activé : https://ludodulac.github.io/climber-tactile/
+Site : https://ludodulac.github.io/climber-tactile/
 
-- Sur téléphone : appuyer sur les grands boutons **◀**, **▶**, **SAUT** (appuis simultanés possibles).
-- Sur ordinateur : flèches gauche/droite et barre d'espace.
-- En haut : son, pause, recommencer.
-- Le record est gardé localement dans le navigateur.
+- Téléphone : grandes touches ◀, ▶ et SAUT. Les touches de déplacement et saut fonctionnent simultanément.
+- Ordinateur : flèches gauche/droite et barre d'espace.
+- Pour grimper, sauter sur l'étage supérieur. Si un plateau vous bloque, sauter **deux fois** au même endroit pour percer la brique ; vous pouvez aussi passer dans un trou déjà ouvert.
+- Les ennemis « blockmen » traversent les étages et rebouchent les trous. D'autres ennemis volants arrivent.
+- Le décor défile vers le haut à mesure que vous gagnez des étages (25 par phase). Des bonus d'oiseau ou de dragon simplifiés ponctuent la progression.
+- Le record est sauvegardé localement dans le navigateur.
 
-## Activer GitHub Pages
+## Hébergement GitHub Pages
 
-Dans le dépôt GitHub : **Settings → Pages → Build and deployment → Source : Deploy from a branch → Branch : main → /(root) → Save**.
+GitHub → dépôt **climber-tactile** → **Settings → Pages** → Source **Deploy from a branch** → Branche **main**, dossier **/(root)** → Save.
 
-Le jeu est une page autonome `index.html`, sans framework ni serveur.
+Un seul fichier suffit à lancer le jeu : `index.html`.
 
-## Agrandir encore les boutons
+## Pour aller plus loin
 
-Dans `index.html`, chercher `.controls` et `.control`. La propriété `height` définit la hauteur des grosses commandes ; augmenter ses valeurs pour les rendre encore plus grandes.
+Le jeu demande encore des ajustements de fidélité sur la forme exacte des étages, le rythme des sauts, le défilement, les ennemis, la difficulté, le comportement des bonus et les graphismes. Il ne faut pas présenter cette version comme une émulation exacte du modèle Nintendo.
