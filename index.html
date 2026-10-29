@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172c2a">
+  <title>Climber tactile — adaptation personnelle</title>
+  <style>
+    :root { color-scheme: dark; --ink:#e9f7e8; --sub:#a9c0b6; --background:#0b1818; --surface:#162827; --edge:#38534b; --accent:#e8f08c; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; min-height:100%; background:var(--background); font:500 15px system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); overscroll-behavior:none; }
+    .app { height:100dvh; min-height:0; display:flex; flex-direction:column; margin:auto; max-width:650px; }
+    .header { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 13px 8px; }
+    .brand { display:flex; flex-direction:column; gap:1px; }
+    .brand strong { font-size:20px; letter-spacing:.6px; line-height:1.1; }
+    .brand small { font-size:11px; color:var(--sub); }
+    .actions { display:flex; gap:7px; }
+    .small-btn { min-height:38px; min-width:43px; border:1px solid var(--edge); border-radius:11px; background:var(--surface); color:var(--ink); font-size:19px; cursor:pointer; }
+    .small-btn:focus-visible,.control:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+    .screen-container { min-height:0; flex:1 1 auto; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 11px; }
+    #game { display:block; height:100%; max-height:720px; width:auto; max-width:100%; object-fit:contain; border:5px solid #4f6656; border-radius:19px; background:#acbc93; box-shadow:inset 0 0 0 2px #172c2a,0 8px 35px #0008; }
+    .help { flex:0 0 auto; font-size:12px; line-height:1.25; color:var(--sub); text-align:center; padding:8px 10px 0; }
+    .controls { flex:0 0 auto; display:grid; grid-template-columns:1fr 1fr 1.4fr; gap:10px; height:clamp(125px,21dvh,170px); padding:10px 13px max(13px,env(safe-area-inset-bottom)); touch-action:none; user-select:none; }
+    .control { touch-action:none; user-select:none; -webkit-user-select:none; border:3px solid #779187; border-radius:23px; font-size:clamp(37px,9vw,58px); font-weight:900; color:#fff; background:#304d49; box-shadow:0 8px 0 #162f2b; cursor:pointer; }
+    .control.jump { background:#9d593a; border-color:#e0a281; box-shadow:0 8px 0 #613520; color:#fff9e7; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:clamp(28px,8vw,46px); }
+    .control.jump span { font-size:16px; font-weight:800; letter-spacing:.04em; }
+    .control.is-down { transform:translateY(6px); box-shadow:0 2px 0 #101e1c; filter:brightness(1.2); }
+    .footer { flex:0 0 auto; color:#89a198; font-size:10px; text-align:center; padding:0 8px 5px; }
+    @media (min-width:700px) { .app { height:min(100dvh,970px); } }
+    @media (max-height:600px) and (orientation:landscape) { .app { height:100dvh; display:grid; max-width:100%; grid-template-columns:minmax(240px,1fr) minmax(280px,410px); grid-template-rows:54px 1fr 20px; } .header {grid-area:1/1/2/3} .screen-container {grid-area:2/1/3/2;min-height:0} .controls {grid-area:2/2/3/3;height:auto;align-self:stretch; padding-top:20px; padding-bottom:20px;} .help {grid-area:3/1/4/3;padding:0;} .footer {display:none} }
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div class="brand"><strong>CLIMBER <span style="color:var(--accent)">TACTILE</span></strong><small>Mini-jeu LCD réinventé · gros boutons</small></div>
+    <div class="actions">
+      <button class="small-btn" id="sound" title="Activer ou couper le son" aria-label="Activer le son">♪</button>
+      <button class="small-btn" id="pause" title="Pause / reprendre" aria-label="Pause">Ⅱ</button>
+      <button class="small-btn" id="restart" title="Recommencer" aria-label="Recommencer">↻</button>
+    </div>
+  </header>
+  <section class="screen-container" aria-label="Zone de jeu"><canvas id="game" width="360" height="570" role="img" aria-label="Plateformes à escalader, ennemis à éviter, blocs à briser"></canvas></section>
+  <div class="help">◀ ▶ pour bouger · SAUT pour grimper et casser les blocs (2 coups). Clavier : ← → espace.</div>
+  <nav class="controls" aria-label="Grosses commandes tactiles">
+    <button class="control" data-key="left" aria-label="Gauche">◀</button>
+    <button class="control" data-key="right" aria-label="Droite">▶</button>
+    <button class="control jump" data-key="jump" aria-label="Sauter">▲<span>SAUT</span></button>
+  </nav>
+  <div class="footer">Adaptation originale inspirée des jeux LCD ; non officielle, sans ROM ni graphismes Nintendo.</div>
+</main>
+<script>
+(() => {
+  'use strict';
+  const cv = document.querySelector('#game');
+  const cx = cv.getContext('2d');
+  const WIDTH=360, HEIGHT=570, GROUND=2210, STEP=108;
+  const keyState={left:false,right:false,jump:false};
+  const pointerMap=new Map();
+  const btns=[...document.querySelectorAll('.control')];
+  let soundOn=false, audioContext=null, game;
+  const safeBest=()=>{try{return Number(localStorage.getItem('climber-tactile-best')||0)}catch{return 0}};
+  const saveBest=(score)=>{try{localStorage.setItem('climber-tactile-best',String(score))}catch{}};
+  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  const rand=(seed)=>{let x=Math.sin(seed*127.1+32.2)*43758.54;return x-Math.floor(x)};
+  const rectHit=(a,b)=>a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  function beep(freq=440,duration=.06,kind='square') {
+    if(!soundOn)return;
+    try{audioContext ||= new (window.AudioContext||window.webkitAudioContext)();
+      if(audioContext.state==='suspended')audioContext.resume();
+      const oscillator=audioContext.createOscillator(), gain=audioContext.createGain();
+      oscillator.type=kind; oscillator.frequency.value=freq;gain.gain.setValueAtTime(.045,audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);
+      oscillator.connect(gain);gain.connect(audioContext.destination);
+      oscillator.start();oscillator.stop(audioContext.currentTime+duration);
+    }catch{}
+  }
+  function generate(phase,resetLives=false) {
+    let old=game;
+    let platforms=[{x:8,y:GROUND,w:344,h:12,visited:true}];
+    let enemies=[],blocks=[];
+    for(let i=1;i<=15;i++){
+      const center=180+65*Math.sin(i*.85+phase*.65), width=166+(i%3)*13;
+      const plat={x:clamp(center-width/2,10,350-width), y:GROUND-i*STEP, w:width,h:10,visited:false};
+      platforms.push(plat);
+      if(i%3===0 || (phase>1 && i%4===0)) {
+        enemies.push({x:plat.x+plat.w*.48,y:plat.y-20,w:19,h:18,speed:35+(i%4)*8,dir:i%2?1:-1,platform:plat});
+      }
+      if(i>1 && i%2===0){
+        const bx=clamp(plat.x+20+rand(i+phase*17)*60,20,WIDTH-65);
+        blocks.push({x:bx,y:plat.y-64,w:35,h:15,hp:2});
+      }
+    }
+    const player={x:170,y:GROUND-25,w:19,h:24,vx:0,vy:0,onGround:true,inv:0};
+    game={phase,score:old?.score||0,best:old?.best||safeBest(),lives:resetLives?3:(old?.lives||3),platforms,enemies,blocks,player,
+      camera:GROUND-HEIGHT+150, bird:null,birdTimer:6.5, time:0, exit:{x:161,y:GROUND-16*STEP,w:40,h:18},
+      paused:false,over:false,announcement:'GRIMPE JUSQU’À L’OISEAU !',announceTimer:2.5};
+    clearInput();
+  }
+  function addScore(n) {game.score+=n;if(game.score>game.best){game.best=game.score;saveBest(game.best)}}
+  function loseLife(){
+    let p=game.player;if(p.inv>0||game.over)return;
+    game.lives--;beep(160,.2,'sawtooth');
+    if(game.lives<=0){game.over=true;game.announcement='PARTIE TERMINÉE';game.announceTimer=Infinity;return}
+    p.x=170;p.y=GROUND-p.h;p.vy=0;p.onGround=true;p.inv=2;
+    game.camera=GROUND-HEIGHT+150;game.announcement='AÏE ! REPARSE DU BAS';game.announceTimer=1.7;
+  }
+  function nextPhase(){
+    const oldPhase=game.phase;
+    addScore(1000); const old=game;
+    generate(oldPhase+1);
+    game.score=old.score;game.best=old.best;
+    game.lives=Math.min(5,old.lives+(oldPhase%3===0?1:0));
+    game.announcement=`NIVEAU ${game.phase} !`;game.announceTimer=2.5;
+    beep(750,.17);
+  }
+  let jumpQueued=false;
+  function queueJump() {jumpQueued=true}
+  function clearInput(){for(const k of Object.keys(keyState))keyState[k]=false;pointerMap.clear();btns.forEach(b=>b.classList.remove('is-down'));jumpQueued=false}
+  function refreshPointerKeys(){
+    for(const key of Object.keys(keyState)){
+      const active=[...pointerMap.values()].some(v=>v===key);
+      keyState[key]=active || keyboardKeys.has(key);
+    }
+    btns.forEach(b=>b.classList.toggle('is-down',keyState[b.dataset.key]));
+  }
+  const keyboardKeys=new Set();
+  for(const b of btns){
+    b.addEventListener('pointerdown',e=>{
+      e.preventDefault();b.setPointerCapture(e.pointerId);
+      pointerMap.set(e.pointerId,b.dataset.key);if(b.dataset.key==='jump')queueJump();
+      refreshPointerKeys();
+    });
+    const release=e=>{pointerMap.delete(e.pointerId);refreshPointerKeys()};
+    b.addEventListener('pointerup',release);
+    b.addEventListener('pointercancel',release);
+    b.addEventListener('lostpointercapture',release);
+    b.addEventListener('contextmenu',e=>e.preventDefault());
+  }
+  const keyNames={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump'};
+  window.addEventListener('keydown',e=>{
+    const name=keyNames[e.code];if(name){e.preventDefault();if(!keyboardKeys.has(name) && name==='jump')queueJump();keyboardKeys.add(name);refreshPointerKeys()}
+    if(e.code==='KeyP'){game.paused=!game.paused; updatePause()}
+    if(e.code==='Enter'&&game.over)generate(1,true);
+  });
+  window.addEventListener('keyup',e=>{const k=keyNames[e.code];if(k){keyboardKeys.delete(k);refreshPointerKeys()}});
+  window.addEventListener('blur',()=>{keyboardKeys.clear();clearInput();game.paused=true;updatePause()});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){keyboardKeys.clear();clearInput();game.paused=true;updatePause()}});
+  function updatePause(){document.querySelector('#pause').textContent=game.paused?'▶':'Ⅱ'}
+  document.querySelector('#pause').addEventListener('click',()=>{if(game.over){generate(1,true)}else{game.paused=!game.paused;updatePause()}});
+  document.querySelector('#restart').addEventListener('click',()=>{generate(1,true);updatePause()});
+  document.querySelector('#sound').addEventListener('click',e=>{
+    soundOn=!soundOn;e.currentTarget.textContent=soundOn?'♫':'♪';
+    e.currentTarget.setAttribute('aria-label',soundOn?'Couper le son':'Activer le son');beep(620);
+  });
+  function update(dt){
+    if(game.paused||game.over)return;
+    dt=Math.min(.035,dt);game.time+=dt;
+    if(game.announceTimer>0)game.announceTimer-=dt;
+    let p=game.player,previousTop=p.y,previousBottom=p.y+p.h;
+    p.inv=Math.max(0,p.inv-dt);
+    const dir=(keyState.right?1:0)-(keyState.left?1:0);
+    p.vx=dir*178;
+    if(jumpQueued&&p.onGround){p.vy=-510;p.onGround=false;beep(620,.055)}
+    jumpQueued=false;
+    p.x=clamp(p.x+p.vx*dt,8,WIDTH-p.w-8);
+    p.vy=Math.min(670,p.vy+840*dt);p.y+=p.vy*dt;
+    if(p.vy<0){
+      for(const b of game.blocks){
+        if(b.hp<=0)continue;
+        if(previousTop >= b.y+b.h-5 && p.y <= b.y+b.h && rectHit(p,b)){
+          b.hp--;p.y=b.y+b.h;p.vy=75;beep(b.hp?290:490,.085);if(!b.hp)addScore(60);
+          break;
+        }
+      }
+    }
+    p.onGround=false;
+    if(p.vy>=0){
+      for(const plat of game.platforms){
+        if(previousBottom<=plat.y+8 && p.y+p.h>=plat.y && p.x+p.w>plat.x+2 && p.x<plat.x+plat.w-2){
+          p.y=plat.y-p.h;p.vy=0;p.onGround=true;
+          if(!plat.visited){plat.visited=true;addScore(100);beep(380,.03)}
+          break;
+        }
+      }
+    }
+    for(const en of game.enemies){
+      en.x+=en.speed*en.dir*dt;
+      if(en.x<en.platform.x+2){en.x=en.platform.x+2;en.dir=1}
+      if(en.x+en.w>en.platform.x+en.platform.w-2){en.x=en.platform.x+en.platform.w-en.w-2;en.dir=-1}
+      if(p.inv<=0&&rectHit(p,en))loseLife();
+    }
+    game.birdTimer-=dt;
+    if(game.birdTimer<=0 && !game.bird){
+      const fromLeft=rand(game.phase*100+game.time)<.5;
+      game.bird={x:fromLeft?-28:WIDTH+8,y:clamp(p.y-65,game.exit.y+90,GROUND-35),w:27,h:16,vx:fromLeft?105:-105};
+      game.birdTimer=10+rand(game.time+game.phase)*4;
+    }
+    if(game.bird){
+      game.bird.x+=game.bird.vx*dt;
+      if(p.inv<=0 && rectHit(p,game.bird))loseLife();
+      if(game.bird.x<-35||game.bird.x>WIDTH+35)game.bird=null;
+    }
+    if(p.y>GROUND+100)loseLife();
+    if(p.y<game.exit.y+28 && Math.abs(p.x+p.w/2-180)<40){nextPhase();return}
+    const target=clamp(p.y-HEIGHT*.57,game.exit.y-140,GROUND-HEIGHT+150);
+    game.camera+=(target-game.camera)*Math.min(1,dt*5.5);
+  }
+  function draw(){
+    cx.clearRect(0,0,WIDTH,HEIGHT);
+    cx.fillStyle='#b5c79c';cx.fillRect(0,0,WIDTH,HEIGHT);
+    cx.strokeStyle='#9cab87';cx.lineWidth=.65;
+    for(let x=8;x<WIDTH;x+=25){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,HEIGHT);cx.stroke()}
+    for(let y=8;y<HEIGHT;y+=25){cx.beginPath();cx.moveTo(0,y);cx.lineTo(WIDTH,y);cx.stroke()}
+    const yScreen=y=>Math.round(y-game.camera);
+    // Retro stepped walls
+    for(let i=0;i<35;i++){
+      const wy=GROUND-i*75,sy=yScreen(wy);
+      if(sy<-40||sy>HEIGHT+40)continue;
+      cx.fillStyle='#8b9f78';cx.fillRect(0,sy,10,33);cx.fillRect(WIDTH-10,sy,10,33);
+    }
+    for(const pl of game.platforms){
+      const y=yScreen(pl.y);if(y<-20||y>HEIGHT+20)continue;
+      cx.fillStyle='#223e32';cx.fillRect(pl.x,y,pl.w,10);
+      cx.fillStyle='#506b4e';cx.fillRect(pl.x+3,y+3,pl.w-6,2);
+      cx.fillStyle='#172b26';
+      for(let x=pl.x+7;x<pl.x+pl.w-4;x+=21)cx.fillRect(x,y+8,6,2);
+    }
+    for(const b of game.blocks){
+      if(b.hp<=0)continue;
+      const y=yScreen(b.y);if(y<-25||y>HEIGHT+25)continue;
+      cx.fillStyle=b.hp===2?'#596a3c':'#81804a';cx.fillRect(b.x,y,b.w,b.h);
+      cx.fillStyle='#273e2d';cx.fillRect(b.x+4,y+3,b.w-8,3);
+      cx.strokeStyle='#293f30';cx.strokeRect(b.x+1,y+1,b.w-2,b.h-2);
+      if(b.hp===1){cx.beginPath();cx.moveTo(b.x+8,y+3);cx.lineTo(b.x+20,y+11);cx.stroke()}
+    }
+    for(const en of game.enemies){
+      const y=yScreen(en.y);if(y<-40||y>HEIGHT+40)continue;
+      cx.fillStyle='#40513a';cx.fillRect(en.x+2,y+4,16,14);
+      cx.fillRect(en.x+6,y,8,8);cx.fillStyle='#e2e9b0';cx.fillRect(en.x+6,y+6,3,3);cx.fillRect(en.x+12,y+6,3,3);
+      cx.fillStyle='#22372e';cx.fillRect(en.x,y+16,5,4);cx.fillRect(en.x+14,y+16,5,4);
+    }
+    if(game.bird){
+      const b=game.bird,y=yScreen(b.y);cx.fillStyle='#415b47';cx.fillRect(b.x+7,y+5,15,8);
+      cx.fillRect(b.x+(Math.sin(game.time*19)>0?2:7),y,10,6);
+      cx.fillStyle='#293e30';cx.fillRect(b.x+22,y+8,7,3);
+    }
+    // Exit bird / next phase
+    const exitY=yScreen(game.exit.y);
+    if(exitY> -45&&exitY<HEIGHT+45){
+      cx.fillStyle='#223e32';cx.fillRect(133,exitY+19,94,7);
+      cx.fillStyle='#364f3d';cx.fillRect(160,exitY,40,19);
+      cx.fillRect(167,exitY-7,23,12);
+      cx.fillStyle='#e5efa9';cx.fillRect(183,exitY-4,4,4);
+      cx.fillStyle='#283c2d';cx.fillRect(197,exitY+7,10,3);
+      cx.font='bold 11px system-ui';cx.textAlign='center';cx.fillStyle='#243c30';cx.fillText('OBJECTIF',180,exitY+41);
+    }
+    const p=game.player,py=yScreen(p.y);
+    if(p.inv<=0||Math.floor(game.time*10)%2===0){
+      cx.fillStyle='#1c4035';cx.fillRect(p.x+3,py+7,14,14);
+      cx.fillRect(p.x+5,py+1,10,9);
+      cx.fillRect(p.x+2,py+19,6,5);cx.fillRect(p.x+12,py+19,6,5);
+      cx.fillStyle='#e9e8a5';cx.fillRect(p.x+11,py+4,3,3);
+      cx.fillStyle='#5d7854';cx.fillRect(p.x+(keyState.left?-4:15),py+10,5,6);
+    }
+    // Persistent HUD
+    cx.fillStyle='#172d28';cx.fillRect(0,0,WIDTH,55);
+    cx.fillStyle='#e7efb4';cx.font='bold 17px monospace';cx.textAlign='left';cx.fillText(`SCORE ${String(game.score).padStart(5,'0')}`,14,23);
+    cx.fillText(`♥ ${game.lives}  ÉTAPE ${game.phase}`,14,44);
+    cx.textAlign='right';cx.fillStyle='#b0c49d';cx.font='12px monospace';cx.fillText(`RECORD ${game.best}`,346,43);
+    if(game.announceTimer>0 && !game.paused && !game.over){
+      const msg=game.announcement;
+      cx.fillStyle='#1c302bdf';cx.fillRect(12,HEIGHT-90,WIDTH-24,48);
+      cx.fillStyle='#e9efa9';cx.font='bold 15px system-ui';cx.textAlign='center';cx.fillText(msg,WIDTH/2,HEIGHT-60);
+    }
+    if(game.paused||game.over){
+      cx.fillStyle='#11221acd';cx.fillRect(0,0,WIDTH,HEIGHT);
+      cx.fillStyle='#f1f6c2';cx.textAlign='center';cx.font='bold 27px system-ui';
+      cx.fillText(game.over?'PARTIE TERMINÉE':'PAUSE',180,HEIGHT/2-26);
+      cx.font='16px system-ui';cx.fillText(game.over?`Score : ${game.score}`:'Appuie sur ▶ pour continuer',180,HEIGHT/2+12);
+      if(game.over){cx.font='13px system-ui';cx.fillText('Appuie sur ↻ pour recommencer',180,HEIGHT/2+40)}
+    }
+    // Thin LCD scanline effect
+    cx.fillStyle='#1e392406';for(let y=59;y<HEIGHT;y+=4)cx.fillRect(0,y,WIDTH,1);
+  }
+  let lastTime=performance.now();
+  function frame(now){const dt=(now-lastTime)/1000;lastTime=now;update(dt);draw();requestAnimationFrame(frame)}
+  generate(1,true); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
