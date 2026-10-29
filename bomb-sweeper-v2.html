@@ -178,7 +178,11 @@ function boardMake(pattern,mode,round,seed){
  const [sx,sy]=pattern<=2?[1,1]:starts[(pattern*7)%starts.length];
  const [tx,ty]=pattern<=2?[7,5]:ends[(pattern*11+2)%ends.length];
  const start=pos(sx,sy,w);
- bombs.push(pos(tx,ty,w));
+ let gx=tx,gy=ty;
+ if(Math.abs(sx-gx)+Math.abs(sy-gy)<7){
+  gx=sx<=4?7:1;gy=sy<=3?5:1;
+ }
+ bombs.push(pos(gx,gy,w));
  if(start===bombs[0])bombs[0]=pos(7,5,w);
  if(pattern>8&&pattern%4===0){const second=pos(7,1,w);if(second!==start&&!bombs.includes(second))bombs.push(second)}
  const reserved=new Set([start,...bombs,pos(2,1,w),pos(w-2,h-3,w)]);
