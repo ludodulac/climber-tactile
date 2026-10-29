@@ -1,26 +1,23 @@
-# Climber tactile — ascension LCD
-
-**Jeu d'escalade indépendant pour téléphone Android**, inspiré du fonctionnement du **Climber Crystal Screen (1986)** : des étages superposés, des plateaux de briques à percer, une ascension verticale qui défile et des ennemis.
-
-Ce projet n'est **ni le jeu original de Nintendo ni RetroFab**. Il ne contient pas la ROM, les graphismes ou le code source du jeu commercial. La physique et les séquences de bonus sont encore des **adaptations simplifiées**.
-
-## Jouer
+# Climber — accès à la simulation authentique et adaptation tactile
 
 Site : https://ludodulac.github.io/climber-tactile/
 
-- Téléphone : grandes touches ◀, ▶ et SAUT. Les touches de déplacement et saut fonctionnent simultanément.
-- Ordinateur : flèches gauche/droite et barre d'espace.
-- Pour grimper, sauter sur l'étage supérieur. Si un plateau vous bloque, sauter **deux fois** au même endroit pour percer la brique ; vous pouvez aussi passer dans un trou déjà ouvert.
-- Les ennemis « blockmen » traversent les étages et rebouchent les trous. D'autres ennemis volants arrivent.
-- Le décor défile vers le haut à mesure que vous gagnez des étages (25 par phase). Des bonus d'oiseau ou de dragon simplifiés ponctuent la progression.
-- Le record est sauvegardé localement dans le navigateur.
+## Ce que contient ce dépôt
+- `index.html` : **portail de lancement** vers [Climber Crystal Screen de RetroFab / Itizso](https://itizso.itch.io/nintendo-climber-crystal-screen) (Nintendo 1986, modèle DR-802) ; propose aussi une tentative d'affichage de la page source dans un cadre. Cette tentative peut être bloquée par les protections du fournisseur. **Le jeu lui-même est hébergé par Itizso, pas par ce dépôt.**
+- `adaptation.html` : notre **jeu indépendant** d'ascension, avec grands boutons gauche/droite/saut. Ce jeu n'est pas identique à Climber 1986.
 
-## Hébergement GitHub Pages
+## Pourquoi le jeu RetroFab n'est pas recopié
+- La simulation publiée par Itizso est jouable gratuitement sur itch.io et disponible en fichier `.sim` pour son lecteur Windows.
+- Aucun dépôt source sous licence permettant la redistribution et la modification de cette simulation n'a été vérifié.
+- Le code, les ressources Nintendo et le paquet `.sim` n'ont donc **pas été copiés** sur GitHub.
+- Une page de domaine différent ne peut pas injecter directement des événements clavier/tactiles à l'intérieur d'un lecteur tiers embarqué : les **grands boutons indépendants sur le véritable jeu restent non réalisés**.
+- Une méthode possible serait un accord du développeur RetroFab pour une intégration officielle avec API de contrôle ou un projet de reproduction légalement réutilisable.
 
-GitHub → dépôt **climber-tactile** → **Settings → Pages** → Source **Deploy from a branch** → Branche **main**, dossier **/(root)** → Save.
+## Hébergement
+GitHub Pages depuis la branche `main`, dossier `/(root)`.
 
-Un seul fichier suffit à lancer le jeu : `index.html`.
-
-## Pour aller plus loin
-
-Le jeu demande encore des ajustements de fidélité sur la forme exacte des étages, le rythme des sauts, le défilement, les ennemis, la difficulté, le comportement des bonus et les graphismes. Il ne faut pas présenter cette version comme une émulation exacte du modèle Nintendo.
+## Statut
+- Accès au véritable Climber de RetroFab : **lien direct opérationnel côté HTML** (publication GitHub Pages et lecture mobile à vérifier).
+- Affichage du site RetroFab dans cette page : **expérimental / non vérifié**.
+- Commandes géantes sur la simulation originale : **non réalisées**.
+- Grandes commandes dans notre adaptation : **oui**.
