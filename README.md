@@ -1,23 +1,44 @@
-# Climber — accès à la simulation authentique et adaptation tactile
+# Climber LCD — jeu tactile indépendant
 
-Site : https://ludodulac.github.io/climber-tactile/
+🎮 **Jouer :** https://ludodulac.github.io/climber-tactile/
 
-## Ce que contient ce dépôt
-- `index.html` : **portail de lancement** vers [Climber Crystal Screen de RetroFab / Itizso](https://itizso.itch.io/nintendo-climber-crystal-screen) (Nintendo 1986, modèle DR-802) ; propose aussi une tentative d'affichage de la page source dans un cadre. Cette tentative peut être bloquée par les protections du fournisseur. **Le jeu lui-même est hébergé par Itizso, pas par ce dépôt.**
-- `adaptation.html` : notre **jeu indépendant** d'ascension, avec grands boutons gauche/droite/saut. Ce jeu n'est pas identique à Climber 1986.
+Cette page contient directement un **jeu d'escalade réinventé à partir des mécaniques documentées** du Game & Watch *Climber Crystal Screen* de Nintendo (1986, DR-802). Elle ne redirige plus vers RetroFab.
 
-## Pourquoi le jeu RetroFab n'est pas recopié
-- La simulation publiée par Itizso est jouable gratuitement sur itch.io et disponible en fichier `.sim` pour son lecteur Windows.
-- Aucun dépôt source sous licence permettant la redistribution et la modification de cette simulation n'a été vérifié.
-- Le code, les ressources Nintendo et le paquet `.sim` n'ont donc **pas été copiés** sur GitHub.
-- Une page de domaine différent ne peut pas injecter directement des événements clavier/tactiles à l'intérieur d'un lecteur tiers embarqué : les **grands boutons indépendants sur le véritable jeu restent non réalisés**.
-- Une méthode possible serait un accord du développeur RetroFab pour une intégration officielle avec API de contrôle ou un projet de reproduction légalement réutilisable.
+## Fonctionnalités
 
-## Hébergement
-GitHub Pages depuis la branche `main`, dossier `/(root)`.
+- Affichage LCD **clair, lumineux, contrasté** avec des silhouettes conçues en images prédéfinies.
+- Déplacements **case par case**, sauts à positions fixes et défilement de l'écran **étage par étage**.
+- **25 étages par phase**, étages de briques avec passages à créer : deux sauts pour casser une brique.
+- Blockmen qui circulent et rebouchent certains trous, oiseaux, ronces, plateaux mobiles à partir de certaines phases.
+- **Hentori** à attraper après chaque phase normale (deux essais), **épée et Dragalo** une phase sur cinq.
+- **Trois erreurs**, reprise, scores, record enregistré localement.
+- **Très gros boutons** gauche, droite, SAUT ; fonctionnement combiné des touches, clavier et commande pause/son/recommencer.
 
-## Statut
-- Accès au véritable Climber de RetroFab : **lien direct opérationnel côté HTML** (publication GitHub Pages et lecture mobile à vérifier).
-- Affichage du site RetroFab dans cette page : **expérimental / non vérifié**.
-- Commandes géantes sur la simulation originale : **non réalisées**.
-- Grandes commandes dans notre adaptation : **oui**.
+## Comment grimper
+
+1. Le personnage part sous un plateau, avec des ouvertures entre certaines briques.
+2. Déplace-toi sous une ouverture et saute.
+3. **Pendant le saut**, déplace-toi sur une partie pleine du plateau supérieur afin d'y retomber.
+4. Si tu arrives sous une brique, deux sauts au même endroit la cassent et créent un passage.
+5. Au 25e étage, réussis le bonus de fin de phase.
+
+**Remarque importante :** les plateformes se traversent par leurs trous, mais on doit atterrir sur une partie pleine de la plateforme supérieure. La direction peut être maintenue en même temps que le saut.
+
+## Fichiers
+
+- `index.html` : **jeu publié** directement, sans dépendance.
+- `lcd-reconstruction.html` : copie de travail de cette version.
+- `adaptation.html` : ancienne première version d'ascension, beaucoup moins fidèle.
+- `RECHERCHES_ET_REGLES.md` : recherche, références, caractéristiques établies et écarts encore présents.
+
+## Statut et limites
+
+**Il s'agit d'une récréation indépendante, pas de la ROM ni du code source Nintendo**. Les silhouettes sont des créations nouvelles : elles ne sont pas celles d'origine. Les règles principales sont reprises à partir de descriptions vérifiées, mais les timings, certains comportements des adversaires, les dispositions des niveaux et les bonus restent des approximations et n'ont pas été comparés image par image à la machine originale.
+
+Le jeu a été vérifié par **tests programmatiques du JavaScript et de plusieurs transitions**. La publication GitHub Pages et les commandes sur **le téléphone physique** restent à valider par le propriétaire. Aucun fichier propriétaire de Nintendo/RetroFab n'est utilisé.
+
+## Modifier ou publier
+
+Fichier unique `index.html`, hébergement GitHub Pages depuis la branche `main` et le dossier `/(root)`.
+
+Aucune clé, API ou dépense nécessaire.
