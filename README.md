@@ -1,44 +1,51 @@
-# Climber LCD — jeu tactile indépendant
+# Mes jeux LCD — Climber et Bomb Sweeper
 
-🎮 **Jouer :** https://ludodulac.github.io/climber-tactile/
+**Adresse du site :** https://ludodulac.github.io/climber-tactile/
 
-Cette page contient directement un **jeu d'escalade réinventé à partir des mécaniques documentées** du Game & Watch *Climber Crystal Screen* de Nintendo (1986, DR-802). Elle ne redirige plus vers RetroFab.
+Le site propose **deux jeux indépendants**, accessibles depuis un menu commun, avec des commandes tactiles adaptées aux smartphones.
 
-## Fonctionnalités
+| Page | Contenu |
+| --- | --- |
+| `index.html` | **Menu** permettant de choisir entre Climber LCD et Bomb Sweeper LCD ; lien vers Zelda Game & Watch sur RetroFab. |
+| `climber.html` | Premier jeu : ascension LCD sur 25 étages, avec gros boutons gauche/droite/saut. |
+| `bomb-sweeper.html` | Deuxième jeu : puzzles de désamorçage sur double écran, direction à quatre touches, modes GAME A et GAME B. |
+| `lcd-reconstruction.html` | Sauvegarde de la version Climber du 29 octobre 2026. |
+| `adaptation.html` | Prototype antérieur du jeu d'ascension. |
+| `RECHERCHES_ET_REGLES.md` | Recherche et limites connues pour Climber Crystal Screen. |
+| `BOMB_SWEEPER_REGLES.md` | Règles sources et limites de la récréation de Bomb Sweeper. |
 
-- Affichage LCD **clair, lumineux, contrasté** avec des silhouettes conçues en images prédéfinies.
-- Déplacements **case par case**, sauts à positions fixes et défilement de l'écran **étage par étage**.
-- **25 étages par phase**, étages de briques avec passages à créer : deux sauts pour casser une brique.
-- Blockmen qui circulent et rebouchent certains trous, oiseaux, ronces, plateaux mobiles à partir de certaines phases.
-- **Hentori** à attraper après chaque phase normale (deux essais), **épée et Dragalo** une phase sur cinq.
-- **Trois erreurs**, reprise, scores, record enregistré localement.
-- **Très gros boutons** gauche, droite, SAUT ; fonctionnement combiné des touches, clavier et commande pause/son/recommencer.
+## Bomb Sweeper — comment jouer
 
-## Comment grimper
+Dans le jeu de Nintendo de 1987, le héros John Solver doit traverser des égouts et trouver **une bombe** posée par Dynamite Jack **avant la fin du compte à rebours**. Il peut **pousser** une paroi mobile si la case derrière celle-ci est libre. Atteindre une bombe désamorce les autres et rapporte un nombre de points dépendant du temps restant.
 
-1. Le personnage part sous un plateau, avec des ouvertures entre certaines briques.
-2. Déplace-toi sous une ouverture et saute.
-3. **Pendant le saut**, déplace-toi sur une partie pleine du plateau supérieur afin d'y retomber.
-4. Si tu arrives sous une brique, deux sauts au même endroit la cassent et créent un passage.
-5. Au 25e étage, réussis le bonus de fin de phase.
+La récréation ici comprend :
+- **GAME A : 10 labyrinthes aux dispositions prédéfinies, puis un niveau bonus horizontal à défilement.**
+- **GAME B : 15 labyrinthes variables par cycle, plus rapides.**
+- Un personnage et des obstacles avec dessins originaux dans une interface LCD volontairement **lumineuse**.
+- Gros boutons tactiles **▲ ◀ ▼ ▶**, clavier flèches/WASD.
+- **Annuler** le dernier déplacement, **Indice** (coûte 6 secondes), Pause, Son.
+- Des murs permanents verts, des parois **jaunes à pousser**, des bombes et un compte à rebours.
+- Un maximum de **trois explosions** avant la fin de partie ; les manques ne sont pas effacés au score 300.
 
-**Remarque importante :** les plateformes se traversent par leurs trous, mais on doit atterrir sur une partie pleine de la plateforme supérieure. La direction peut être maintenue en même temps que le saut.
+La disposition des 10 labyrinthes, leur nombre précis de parois, les secondes allouées, la musique, les graphismes, le système d'indice et les mouvements du personnage **sont des créations / adaptations indépendantes**. Il ne s'agit **pas** d'une émulation de la ROM Nintendo et le programme source ou les graphismes de RetroFab ne sont pas copiés.
 
-## Fichiers
+## Zelda Game & Watch en ligne
 
-- `index.html` : **jeu publié** directement, sans dépendance.
-- `lcd-reconstruction.html` : copie de travail de cette version.
-- `adaptation.html` : ancienne première version d'ascension, beaucoup moins fidèle.
-- `RECHERCHES_ET_REGLES.md` : recherche, références, caractéristiques établies et écarts encore présents.
+Le Zelda d'origine (1989) est jouable depuis le navigateur à l'adresse de son auteur :
+https://itizso.itch.io/nintendo-zelda
 
-## Statut et limites
+Sur cette page, cliquer sur « Run game ». Ce jeu est **externe** au présent dépôt.
 
-**Il s'agit d'une récréation indépendante, pas de la ROM ni du code source Nintendo**. Les silhouettes sont des créations nouvelles : elles ne sont pas celles d'origine. Les règles principales sont reprises à partir de descriptions vérifiées, mais les timings, certains comportements des adversaires, les dispositions des niveaux et les bonus restent des approximations et n'ont pas été comparés image par image à la machine originale.
+## Déploiement
 
-Le jeu a été vérifié par **tests programmatiques du JavaScript et de plusieurs transitions**. La publication GitHub Pages et les commandes sur **le téléphone physique** restent à valider par le propriétaire. Aucun fichier propriétaire de Nintendo/RetroFab n'est utilisé.
+GitHub Pages → main / (root). Aucun serveur, framework, accès payant ni API. Chaque jeu est un fichier HTML autonome.
 
-## Modifier ou publier
+## Vérifications (29 octobre 2026)
 
-Fichier unique `index.html`, hébergement GitHub Pages depuis la branche `main` et le dossier `/(root)`.
+- Fichiers publiés sur la branche `main`, dépôts et chemins vérifiés par lecture GitHub.
+- Bomb Sweeper : syntaxe JS vérifiée ; 10 configurations A + 15 B toutes résolubles lors des tests de génération ; niveau bonus résoluble ; 11 tests de mécanismes réussis (score, déplacement, annulation, indice, progression, temps, défaite).
+- À vérifier **sur le véritable téléphone Android** : rendu visuel, confort des boutons, animations, audio et déploiement effectif de GitHub Pages.
 
-Aucune clé, API ou dépense nécessaire.
+## Modifications ultérieures
+
+Il suffit de modifier directement la page HTML du jeu concerné. Les deux jeux sont indépendants et le menu reste en place.
