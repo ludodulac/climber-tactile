@@ -173,8 +173,14 @@ function solver(board,maxStates=24000){
 function boardMake(pattern,mode,round,seed){
  const w=MAP_W,h=MAP_H,rng=rand(seed),wall=new Set(),boxes=[],orient={},bombs=[];
  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
- const start=pos(1,1,w);bombs.push(pos(w-2,h-2,w));
- if(pattern>8&&pattern%4===0)bombs.push(pos(w-2,1,w));
+ const starts=[[1,1],[1,5],[3,1],[2,4],[6,1],[4,5]];
+ const ends=[[7,5],[7,1],[6,5],[7,4],[1,1],[2,1]];
+ const [sx,sy]=pattern<=2?[1,1]:starts[(pattern*7)%starts.length];
+ const [tx,ty]=pattern<=2?[7,5]:ends[(pattern*11+2)%ends.length];
+ const start=pos(sx,sy,w);
+ bombs.push(pos(tx,ty,w));
+ if(start===bombs[0])bombs[0]=pos(7,5,w);
+ if(pattern>8&&pattern%4===0){const second=pos(7,1,w);if(second!==start&&!bombs.includes(second))bombs.push(second)}
  const reserved=new Set([start,...bombs,pos(2,1,w),pos(w-2,h-3,w)]);
  function add(x,y,o){
   const p=pos(x,y,w);
@@ -182,8 +188,14 @@ function boardMake(pattern,mode,round,seed){
    boxes.push(p);orient[p]=o;return true;
   }return false;
  }
- if(pattern>=2)for(let y=1;y<h-1;y++)add(4,y,"v");
- if(pattern>=7&&pattern%3===0)for(let x=2;x<=6;x++)add(x,3,"h");
+ if(pattern>=2){
+  const center=3+pattern%3;
+  for(let y=1;y<h-1;y++)add(center,y,"v");
+ }
+ if(pattern>=7&&pattern%3===0){
+  const horizontal=2+pattern%3;
+  for(let x=2;x<=6;x++)add(x,horizontal,"h");
+ }
  const amount=pattern===1?3:Math.min(12,2+Math.floor(pattern/4)+(mode==="B"?3:0));
  for(let j=0;j<amount;j++)for(let t=0;t<50;t++){
   const x=1+Math.floor(rng()*(w-2)),y=1+Math.floor(rng()*(h-2));
@@ -209,7 +221,7 @@ function makeBonus(){
  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x===0||x===w-1||y===0||y===h-1)wall.add(pos(x,y,w));
  const cols=[5,10,15,20,25,29],gaps=[2,4,2,4,2,4];
  cols.forEach((x,i)=>{for(let y=1;y<6;y++)if(y!==gaps[i]){
-  let v=pos(x,y,w);boxes.push(v);orient[v]="v";
+  let v=pos(x,y,w);wall.add(v);
  }});
  return {w,h,wall,boxes,orient,bombs:[],start,exit,type:"bonus"};
 }
@@ -226,7 +238,7 @@ function loadStage(keepCurrent=false){
  const g=game;
  g.board=keepCurrent?cloneBoard(g.initial):g.mode==="A"&&g.bonusDue?makeBonus():newBoard(g.stage,g.mode,g.round);
  g.initial=cloneBoard(g.board);g.player=g.board.start;g.history=[];g.hint=null;
- g.time=g.board.type==="bonus"?50:(g.mode==="A"?50:Math.max(4,40-(g.round-1)*4));
+ g.time=g.board.type==="bonus"?50:(g.mode==="A"?40:Math.max(4,40-(g.round-1)*4));
  g.scrollCamera=0;g.scrollProgress=0;
  g.paused=false;g.transition=null;g.transitionRemaining=0;g.winning=false;
  updateHud();msg(g.board.type==="bonus"?"BONUS : rejoins la sortie sur la droite !":"Trouve une bombe et pousse les murs mobiles.");
