@@ -404,7 +404,7 @@ function cityDraw(t){
  rect(x,389,10,254,62,"#fff9e9");
  x.strokeStyle="#78a293";x.lineWidth=3;x.strokeRect(389,10,254,62);
  x.fillStyle="#2d6054";x.font="bold 16px monospace";x.fillText("DYNAMITE JACK",404,30);
- x.font="bold 29px monospace";x.fillText("00:"+String(game?Math.ceil(Math.max(0,game.time)):80).padStart(2,"0"),420,61);
+ x.font="bold 29px monospace";const remaining=game?Math.ceil(Math.max(0,game.time)):100;x.fillText(String(Math.floor(remaining/60)).padStart(2,"0")+":"+String(remaining%60).padStart(2,"0"),420,61);
  x.font="bold 12px monospace";x.fillText("VILLE / ALERTE",26,21);
  x.font="bold 13px monospace";x.fillText("ENTRÉE DES ÉGOUTS",17,136);
 }
